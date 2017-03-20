@@ -1,17 +1,8 @@
-""" Express a few lambdas in a more handy and readable way, thanks to a magic variable X (or x).
-
-Examples:
-square = X ** 2
-get_42nd = X[42]
-
-To apply a λ-abstraction (i.e. do a β-reduction), you either call the special β method on it,
-or use the λX (or λx) function to do it for you, just for style...
-assert square.β(3) == 9
-assert λx(square)(3) == 9
-assert get_42nd.β({42: "the answer"}) == "the answer"
-
-and... here's the fun! and a typical use case:
-assert list(map(λx(-x * 3), range(4))) == [0, -3, -6, -9]
+""" Implement the entire mechanism to build λ-abstractions from a
+few magic tricks provided here and a lot of operator overloading.
+Be reassured: while you're not using the public stuff exposed here,
+no operator is overloaded and everything is working as usual.
+Importing this module has no side-effect.
 """
 
 import operator
