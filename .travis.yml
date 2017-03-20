@@ -1,0 +1,15 @@
+language: python
+python:
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "3.6-dev" # 3.6 development branch
+before_install:
+  - pip install --upgrade coveralls pytest setuptools
+install:
+  - python setup.py install
+script:
+  - python setup.py test
+after_success:
+  - coveralls
