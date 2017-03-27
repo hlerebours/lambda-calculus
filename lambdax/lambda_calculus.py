@@ -7,12 +7,13 @@ Importing this module has no side-effect.
 
 import operator
 from abc import abstractmethod
+from itertools import chain
 
 # "Redefinition" of built-in operators if needed
 
-original_len = len
-original_bool = bool
-original_getattr = getattr
+_original_len = len
+_original_bool = bool
+_original_getattr = getattr
 _sentinel = object()
 
 
@@ -24,7 +25,7 @@ def len(collection):  # pylint: disable=redefined-builtin
     return (
         collection.__len__()
         if isinstance(collection, _LambdaAbstractionBase) else
-        original_len(collection)
+        _original_len(collection)
     )
 
 
@@ -33,9 +34,9 @@ def bool(truth):  # pylint: disable=redefined-builtin
     on __len__ if present... so we don't know yet what method to call (before the β-reduction).
     """
     return (
-        _LambdaAbstraction(truth, original_bool, (), {})
+        _LambdaAbstraction(truth, _original_bool, (), {})
         if isinstance(truth, _LambdaAbstractionBase) else
-        original_bool(truth)
+        _original_bool(truth)
     )
 
 
@@ -43,9 +44,9 @@ def getattr(instance, name, default=_sentinel):  # pylint: disable=redefined-bui
     """ Built-in `getattr` function checks that `name` is a string. """
     args = (name,) if default is _sentinel else (name, default)
     return (
-        _LambdaAbstraction(instance, original_getattr, args, {})
-        if isinstance(instance, _LambdaAbstractionBase) else
-        original_getattr(instance, *args)
+        _LambdaAbstraction(instance, _original_getattr, args, {})
+        if any(isinstance(o, _LambdaAbstractionBase) for o in (instance,) + args) else
+        _original_getattr(instance, *args)
     )
 
 
@@ -106,10 +107,31 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
     _β_reducing = None
 
     @abstractmethod
-    def β(self, input_data):
+    def _β(self, *input_data):
         """ β-reduction of the λ-abstraction """
 
-    __call__ = _generate_magic_method(_apply)
+    def __call__(self, *args, **kwargs):  # pylint: disable=method-hidden
+        if not self._β_reducing:
+            if (
+                    args and not kwargs and
+                    not any(isinstance(v, _LambdaAbstractionBase)
+                            for v in chain(args, kwargs.values()))
+            ):
+                # For now, the only thing we now about β-reduction is that it's done by providing
+                # at least one argument, no named argument and no abstraction, so here we assume
+                # we are reducing.
+
+                # Also, make all following calls be β-reductions too. The incentive is to speed up
+                # vectorized operations or anytime a lambda is applied on many elements:
+                # it's defined once and applied many times, so let's cache the reduction.
+                if self._β_reducing is None:
+                    self._β_reducing = True
+            else:
+                # Hence here we assume we're still defining the λ-abstraction
+                return _LambdaAbstraction(self, _apply, args, kwargs)
+
+        return self._β(*args, **kwargs)
+
     __getattr__ = _generate_magic_method(getattr)
     __getitem__ = None  # this is just to silence pylint when we do X[42]
 
@@ -122,29 +144,51 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
 
 class _LambdaAbstraction(_LambdaAbstractionBase):
     def __init__(self, origin, operation, args, kwargs):
-        assert isinstance(origin, _LambdaAbstractionBase)
-        self._λ_origin = origin
+        self._λ_origin = λ(origin)
         self._λ_operation = operation
-        self._λ_args = args
-        self._λ_kwargs = kwargs
+        self._λ_abstract_args = [λ(a) for a in args]
+        self._λ_abstract_kwargs = {k: λ(v) for k, v in kwargs.items()}
 
-    def β(self, input_data):
-        return self._λ_operation(self._λ_origin.β(input_data), *self._λ_args, **self._λ_kwargs)
+    def _β(self, *input_data):
+        return self._λ_operation(
+            # pylint: disable=protected-access
+            self._λ_origin._β(*input_data),
+            *(a._β(*input_data) for a in self._λ_abstract_args),
+            **{k: v._β(*input_data) for k, v in self._λ_abstract_kwargs.items()}
+        )
 
 
 class _IdentityAbstraction(_LambdaAbstractionBase):
-    def β(self, input_data):
-        return input_data
+    # this class cannot be optimized on β-reduction, because it would mutate
+    # instances (x, x1, x2, etc.) shared by all expressions
+    _β_reducing = False
+
+    def __init__(self, index):
+        self._λ_index = index
+
+    def _β(self, *input_data):
+        return input_data[self._λ_index]
 
 
-X = x = _IdentityAbstraction()
+class _ConstantAbstraction(_LambdaAbstractionBase):
+    def __init__(self, constant):
+        self._λ_constant = constant
+
+    def _β(self, *input_data):
+        return self._λ_constant
 
 
-def λX(lambda_abstraction):
-    """ Just to be pretty...
-    :type lambda_abstraction: _LambdaAbstractionBase
+X1 = x1 = X = x = _IdentityAbstraction(0)
+_other_vars = [_IdentityAbstraction(num - 1) for num in range(2, 10)]
+x2, x3, x4, x5, x6, x7, x8, x9 = _other_vars
+X2, X3, X4, X5, X6, X7, X8, X9 = _other_vars
+
+
+def λ(lambda_abstraction):
+    """ Force the expression to be an abstraction
+    :rtype: _LambdaAbstractionBase
     """
-    return lambda_abstraction.β
-
-
-λx = λX
+    return (
+        lambda_abstraction if isinstance(lambda_abstraction, _LambdaAbstractionBase) else
+        _ConstantAbstraction(lambda_abstraction)
+    )

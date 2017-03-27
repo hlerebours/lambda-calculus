@@ -20,7 +20,7 @@ def _extract_snippets():
     with open(os.path.join(os.path.dirname(setup.__file__), 'README.rst')) as f:
         for no, line in enumerate(f):
             if line.strip() and (".. code-block:: python" in line or python_block is not None):
-                current_indent = sum(1 for _ in takewhile((x == ' ').β, line))
+                current_indent = sum(1 for _ in takewhile(x == ' ', line))
                 if python_block is None:
                     # a code block starts here with an indentation greater than:
                     python_block = current_indent
@@ -45,7 +45,7 @@ def _create_snippets_file():
     with open(os.path.join(os.path.dirname(__file__), 'test_readme_snippets.py'), 'w') as f:
         header = '""" Module generated to test the snippets in README.rst.\n' \
                  'It must not be committed.\n"""\n\n\n' \
-                 'def test_all_snippets():  # pylint: disable=C0413\n'
+                 'def test_all_snippets():  # pylint: disable=too-many-locals\n'
         content = header + "\n".join(
             "    # Snippet %d (from line %d):\n    %s" % (
                 i + 1,
