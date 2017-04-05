@@ -6,16 +6,18 @@ from pytest import raises
 
 import lambdax
 from lambdax import λ, X, x1, x2, x3, x4, x5
-from lambdax import in_, and_, or_, not_
-from lambdax import len, bool, getattr  # pylint: disable=redefined-builtin
+from lambdax import contains, and_, or_, not_, is_
 from lambdax.lambda_calculus import _LambdaAbstractionBase
 from lambdax.test import assert_value
 
 
 def test_provided_magic_variables():
-    for name, value in vars(lambdax).items():
-        if name[0].lower() == 'x':
-            assert value._λ_index + 1 == int(name[1:] or 1)  # pylint: disable=protected-access
+    magic_variables = [(name, value)
+                       for name, value in vars(lambdax).items()
+                       if name[0].lower() == 'x' and (len(name) == 1 or name[-1].isdigit())]
+    assert len(magic_variables) == 20
+    assert all(value._λ_index + 1 == int(name[1:] or 1)  # pylint: disable=protected-access
+               for name, value in magic_variables)
 
 
 def test_identity():
@@ -178,14 +180,9 @@ def test_ge():
     assert my_lambda(-50) is False
 
 
-# Particular cases using built-in "operators"
-
 def test_len():
-    assert_value(len([]), 0)
-    assert_value(len("abc"), 3)
-
     my_lambda1 = X.__len__()  # either you directly call the operator
-    my_lambda2 = len(X)  # or you call the function provided by `lambdax` for "convenience"
+    my_lambda2 = λ(len)(X)  # or you wrap the built-in function to make it an abstraction
     assert isinstance(my_lambda1, _LambdaAbstractionBase)
     assert isinstance(my_lambda2, _LambdaAbstractionBase)
     assert_value(my_lambda1("abc"), 3)
@@ -193,10 +190,7 @@ def test_len():
 
 
 def test_bool():
-    assert bool(1) is True
-    assert bool(0) is False
-
-    my_lambda = bool(X)
+    my_lambda = λ(bool)(X)
     assert isinstance(my_lambda, _LambdaAbstractionBase)
 
     # actually calls `__bool__`
@@ -211,71 +205,63 @@ def test_bool():
 
 
 def test_getattr():
-    assert_value(getattr(42, '__str__')(), '42')
-    assert_value(getattr(43, '__str__', int)(), '43')
-    assert_value(getattr(44, 'foo', int)(), 0)
-    assert_value(getattr(45, 'foo', 4.2), 4.2)
-    with raises(AttributeError):
-        getattr(14, 'foo')
-
-    get_imag = getattr(X, 'imag')
+    get_imag = λ(getattr)(X, 'imag')
     assert isinstance(get_imag, _LambdaAbstractionBase)
     assert_value(get_imag(complex(14, 42)), 42)
     with raises(AttributeError):
         get_imag('foo')
 
-    get_attr = getattr(42, X)
+    get_attr = λ(getattr)(42, X)
     assert isinstance(get_attr, _LambdaAbstractionBase)
     assert_value(get_attr('__str__')(), '42')
     with raises(AttributeError):
         get_attr('foo')
 
-    my_getattr = getattr(x1, x2)
+    my_getattr = λ(getattr)(x1, x2)
     assert isinstance(my_getattr, _LambdaAbstractionBase)
     assert_value(my_getattr(14, '__str__')(), '14')
     with raises(AttributeError):
         my_getattr(14, 'foo')
 
-    my_getattr_with_default = getattr(x1, x2, x3)
+    my_getattr_with_default = λ(getattr)(x1, x2, x3)
     assert isinstance(my_getattr_with_default, _LambdaAbstractionBase)
     assert_value(my_getattr_with_default(15, '__str__', int)(), '15')
     assert_value(my_getattr_with_default(16, 'foo', int)(), 0)
     assert_value(my_getattr_with_default(17, 'foo', 1.4), 1.4)
 
-    my_getattr_with_named_default = getattr(x1, x2, default=x3)
-    assert isinstance(my_getattr_with_named_default, _LambdaAbstractionBase)
-    assert_value(my_getattr_with_named_default(25, '__str__', int)(), '25')
-    assert_value(my_getattr_with_named_default(26, 'foo', int)(), 0)
-    assert_value(my_getattr_with_named_default(27, 'foo', 2.1), 2.1)
 
+def test_contains():
+    contains_1 = X.__contains__(1)  # either you directly call the operator
+    contains_2 = contains(X, 2)  # or you call the function provided by `lambdax` for "convenience"
+    is_in_1_2_3 = contains([1, 2, 3], X)
+    assert isinstance(contains_1, _LambdaAbstractionBase)
+    assert isinstance(contains_2, _LambdaAbstractionBase)
 
-def test_in():
-    my_lambda1 = X.__contains__(1)  # either you directly call the operator
-    my_lambda2 = in_(1, X)  # or you call the function provided by `lambdax` for "convenience"
-    assert isinstance(my_lambda1, _LambdaAbstractionBase)
-    assert isinstance(my_lambda2, _LambdaAbstractionBase)
+    assert contains_1((0, 1, 2)) is True
+    assert contains_1(range(3)) is True
+    assert contains_1((5, 6)) is False
+    assert contains_1(range(4, 7)) is False
 
-    assert my_lambda1((0, 1, 2)) is True
-    assert my_lambda1(range(3)) is True
-    assert my_lambda1((5, 6)) is False
-    assert my_lambda1(range(4, 7)) is False
-
-    assert my_lambda2((1, 4)) is True
-    assert my_lambda2(range(4, 7)) is False
+    assert contains_2((2, 4)) is True
+    assert contains_2(range(4, 7)) is False
 
     with raises(TypeError):
-        my_lambda1("012")
+        contains_1("012")
     with raises(TypeError):
-        my_lambda2("012")
+        contains_2("012")
+
+    assert is_in_1_2_3(2) is True
+    assert is_in_1_2_3(5) is False
 
 
-def test_not_in():
-    # poor example for the "not in" operator
-    my_lambda = not_(in_(1, X))
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
-
-    assert my_lambda((0, 4, 2)) is True
-    assert my_lambda(range(3)) is False
+def test_is():
+    is_false = is_(X, False)
+    assert isinstance(is_false, _LambdaAbstractionBase)
+    assert is_false(False) is True
+    assert is_false(True) is False
+    assert is_false(0) is False
+    assert is_false(1) is False
+    assert not_(X)(0) is True
 
 
 def test_logic_and():
@@ -313,11 +299,9 @@ def test_logic_not():
     assert my_lambda([]) is True
     assert my_lambda([0]) is False
 
-# /Particular cases
-
 
 def test_hard_use_case():
-    my_lambda = len(X["abc"][5:])
+    my_lambda = λ(len)(X["abc"][5:])
     assert isinstance(my_lambda, _LambdaAbstractionBase)
     assert_value(my_lambda({"abc": "24-character-long-string"}), 24 - 5)
 

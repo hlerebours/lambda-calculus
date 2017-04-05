@@ -53,24 +53,15 @@ First argument replaces all occurrences of ``x1`` (or ``x``) in the expression, 
 
 Limitations
 ^^^^^^^^^^^
-An expression must start with a magic variable, or with any other thing exposed by the module ``lambdax``,
-i.e. an overridden built-in function or the special function ``λ``; see below.
+The first identifier in the expression must be one of the public members of the module ``lambdax``,
+i.e. a magic variable, a provided operator-as-function or the special function ``λ`` (see below).
 
 —
 -
 
 Particular cases
 ^^^^^^^^^^^^^^^^
-1. The package re-implements a few built-in operators as functions *if needed*.
-   Take a look in ``lambdax``, here is just an example:
-
-   .. code-block:: python
-
-       from lambdax import len  # pylint: disable=redefined-builtin
-       my_lambda = len(x) ** 2
-       assert my_lambda("abc") == 9
-
-2. If there is a call with parameter(s) inside your expression, at least one of the parameters
+1. If there is a call with parameter(s) inside your expression, at least one of the parameters
    must be named or be an abstraction to distinguish your declaration from a *β-reduction*.
    You can apply ``λ`` on an argument if none of them already is a *λ-abstraction*. Examples:
 
@@ -92,7 +83,7 @@ Particular cases
        assert_value(imaginary_4_as(complex), complex(0, 4))
        assert_value(just_call(str), '')
 
-3. As well as writing arguments as explicit abstractions, if your expression can't begin with a "magic thing" coming from
+2. As well as writing arguments as explicit abstractions, if your expression can't begin with a "magic thing" coming from
    ``lambdax``, you can still wrap it with the function ``λ`` to make it an explicit abstraction. Examples:
 
    .. code-block:: python
@@ -104,6 +95,24 @@ Particular cases
        # and modifies the result:
        my_lambda = (λ(already_existing_function)(x, exp=x) - 5) * 2
        assert_value(my_lambda(3), 42)
+
+3. The package re-implements the common "operator" functions provided by the built-in module ``operator``
+   to be directly usable in a lambda expression.
+
+   Caution: the functions ``and_`` and ``or_`` are functional equivalents for keywords
+   ``and`` and ``or``, not for bitwise operators ``&`` and ``|`` despite what has been done
+   in the built-in module ``operator``. The goal here is to be consistent with the provided
+   functions ``not_``, ``is_`` and ``is_not``, which match the keyword operators ``not``, ``is``
+   and ``is not``. Plus there is no need for bitwise operators as functions, since they are all
+   supported as double-underscore-methods in ``lambdax``.
+
+   .. code-block:: python
+
+       from lambdax import contains, and_
+       assert contains([1, 2, 3], x)(2) is True
+       assert contains(x, 4)([1, 2]) is False
+       assert_value(and_(x, 6)(3), 6)
+       assert_value((x & 6)(3), 2)
 
 —
 -

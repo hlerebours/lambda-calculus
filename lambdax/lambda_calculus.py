@@ -3,75 +3,17 @@ few magic tricks provided here and a lot of operator overloading.
 Be reassured: while you're not using the public stuff exposed here,
 no operator is overloaded and everything is working as usual.
 Importing this module has no side-effect.
+
+All functions publicly exposed by the built-in module `operator`
+are redefined here to be immediately usable in lambda expressions.
 """
 
-import operator
-from abc import abstractmethod
-from itertools import chain
+import abc
+import itertools
+import operator as op
+import sys
 
-# "Redefinition" of built-in operators if needed
-
-_original_len = len
-_original_bool = bool
-_original_getattr = getattr
-_sentinel = object()
-
-
-def len(collection):  # pylint: disable=redefined-builtin
-    """ Built-in function `len` checks that the value returned by the call to the method __len__
-    is an `int` and it only keeps the actual integral value, not the whole instance of a possible
-    sub-class of `int`.
-    """
-    return (
-        collection.__len__()
-        if isinstance(collection, _LambdaAbstractionBase) else
-        _original_len(collection)
-    )
-
-
-def bool(truth):  # pylint: disable=redefined-builtin
-    """ Built-in `bool` class, used as a function, calls __bool__ if present or falls back
-    on __len__ if present... so we don't know yet what method to call (before the β-reduction).
-    """
-    return (
-        _LambdaAbstraction(truth, _original_bool, (), {})
-        if isinstance(truth, _LambdaAbstractionBase) else
-        _original_bool(truth)
-    )
-
-
-def getattr(instance, name, default=_sentinel):  # pylint: disable=redefined-builtin
-    """ Built-in `getattr` function checks that `name` is a string. """
-    args = (name,) if default is _sentinel else (name, default)
-    return (
-        _LambdaAbstraction(instance, _original_getattr, args, {})
-        if any(isinstance(o, _LambdaAbstractionBase) for o in (instance,) + args) else
-        _original_getattr(instance, *args)
-    )
-
-
-def in_(item, collection):
-    """ Keyword `in` needs the method __contains__ to return a `bool`,
-    which cannot be sub-classed.
-    """
-    return collection.__contains__(item)
-
-
-def and_(a, b):
-    """ Logical `and` (like the keyword) as a function. """
-    return _LambdaAbstraction(a, lambda a_: a_ and b, (), {})
-
-
-def or_(a, b):
-    """ Logical `or` (like the keyword) as a function. """
-    return _LambdaAbstraction(a, lambda a_: a_ or b, (), {})
-
-
-def not_(truth):
-    """ Logical `not` (like the keyword) as a function. """
-    return _LambdaAbstraction(truth, lambda t: not t, (), {})
-
-# / Redefinition
+_operators = vars(op)
 
 
 def _apply(fun, *args, **kwargs):
@@ -92,31 +34,28 @@ class _AddDunderMethods(type):
     @classmethod
     def __prepare__(mcs, _name, _bases):
         # add operators declared in `operator` standard module (e.g. __add__, __mul__, ...)
-        _operator_methods = vars(operator)
         return {
             method_name: _generate_magic_method(op)
             for method_name, op in (
                 ('__%s__' % op_name.rstrip('_'), op)
-                for op_name, op in _operator_methods.items()
+                for op_name, op in _operators.items()
                 if not op_name.startswith('_')
-            ) if method_name in _operator_methods
+            ) if method_name in _operators
         }
 
 
 class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
     _β_reducing = None
 
-    @abstractmethod
+    @abc.abstractmethod
     def _β(self, *input_data):
         """ β-reduction of the λ-abstraction """
 
     def __call__(self, *args, **kwargs):  # pylint: disable=method-hidden
         if not self._β_reducing:
-            if (
-                    args and not kwargs and
+            if (args and not kwargs and
                     not any(isinstance(v, _LambdaAbstractionBase)
-                            for v in chain(args, kwargs.values()))
-            ):
+                            for v in itertools.chain(args, kwargs.values()))):
                 # For now, the only thing we now about β-reduction is that it's done by providing
                 # at least one argument, no named argument and no abstraction, so here we assume
                 # we are reducing.
@@ -163,8 +102,8 @@ class _IdentityAbstraction(_LambdaAbstractionBase):
     # instances (x, x1, x2, etc.) shared by all expressions
     _β_reducing = False
 
-    def __init__(self, index):
-        self._λ_index = index
+    def __init__(self, idx):
+        self._λ_index = idx
 
     def _β(self, *input_data):
         return input_data[self._λ_index]
@@ -192,3 +131,87 @@ def λ(lambda_abstraction):
         lambda_abstraction if isinstance(lambda_abstraction, _LambdaAbstractionBase) else
         _ConstantAbstraction(lambda_abstraction)
     )
+
+
+# Provide all usual operators (defined in built-in module `operator`)
+# as functions usable in a lambda.
+
+# comparison operations
+eq = λ(op.eq)
+ge = λ(op.ge)
+gt = λ(op.gt)
+lt = λ(op.lt)
+le = λ(op.le)
+ne = λ(op.ne)
+
+# logical operations
+is_ = λ(op.is_)
+is_not = λ(op.is_not)
+not_ = λ(op.not_)
+truth = λ(op.truth)
+
+# mathematical and bitwise operations
+abs = λ(op.abs)  # pylint: disable=redefined-builtin
+add = λ(op.add)
+floordiv = λ(op.floordiv)
+index = λ(op.index)
+inv = λ(op.inv)
+invert = λ(op.invert)
+lshift = λ(op.lshift)
+mod = λ(op.mod)
+mul = λ(op.mul)
+if sys.version_info >= (3, 5):
+    matmul = λ(op.matmul)
+neg = λ(op.neg)
+pos = λ(op.pos)
+pow = λ(op.pow)  # pylint: disable=redefined-builtin
+rshift = λ(op.rshift)
+sub = λ(op.sub)
+truediv = λ(op.truediv)
+
+# sequence operations
+concat = λ(op.concat)
+contains = λ(op.contains)
+countOf = λ(op.countOf)
+delitem = λ(op.delitem)
+getitem = λ(op.getitem)
+indexOf = λ(op.indexOf)
+setitem = λ(op.setitem)
+if sys.version_info >= (3, 4):
+    length_hint = λ(op.length_hint)
+
+# in-place operations
+iadd = λ(op.iadd)
+iand = λ(op.iand)
+iconcat = λ(op.iconcat)
+ifloordiv = λ(op.ifloordiv)
+ilshift = λ(op.ilshift)
+imod = λ(op.imod)
+imul = λ(op.imul)
+if sys.version_info >= (3, 5):
+    imatmul = λ(op.imatmul)
+ior = λ(op.ior)
+ipow = λ(op.ipow)
+irshift = λ(op.irshift)
+isub = λ(op.isub)
+itruediv = λ(op.itruediv)
+ixor = λ(op.ixor)
+
+
+# In the list above are missing (in comparison with the module `operator`)
+# the bitwise functions `and`, `or_` and `xor`. To be consistent with the
+# provided functions `not_`, `is_` and `is_not`, which are functions equivalent
+# to the keyword operators `not`, `is` and `is not` (FYI, the keyword `in` is
+# provided as function with `contains`), we implement the keyword operators
+# `and` and `or` as functions below. To avoid confusion between logical and
+# bitwise operations, we don't provide a function `xor` at all.
+# For the bitwise operations, use the notation `a & b`, `a | b`, `a ^ b`.
+
+def and_(a, b):
+    """ Logical `and` (like the keyword) as a function. """
+    return _LambdaAbstraction(a, lambda a_: a_ and b, (), {})
+
+
+def or_(a, b):
+    """ Logical `or` (like the keyword) as a function. """
+    return _LambdaAbstraction(a, lambda a_: a_ or b, (), {})
