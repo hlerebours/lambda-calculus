@@ -51,7 +51,7 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
     def _β(self, *input_data):
         """ β-reduction of the λ-abstraction """
 
-    def __call__(self, *args, **kwargs):  # pylint: disable=method-hidden
+    def __call__(self, *args, **kwargs):
         if not self._β_reducing:
             if (args and not kwargs and
                     not any(isinstance(v, _LambdaAbstractionBase)
@@ -71,8 +71,14 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
 
         return self._β(*args, **kwargs)
 
+    # just to silence pylint when doing X[42], -X, etc.
+    # these methods are actually implemented by the metaclass
+    def __getitem__(self, _): pass  # pylint: disable=multiple-statements
+    __pos__ = None
+    __neg__ = None
+    __invert__ = None
+
     __getattr__ = _generate_magic_method(getattr)
-    __getitem__ = None  # this is just to silence pylint when we do X[42]
 
     def __setattr__(self, name, value):
         if name[:3] not in ('_λ_', '_β_'):

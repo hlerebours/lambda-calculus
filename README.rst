@@ -34,7 +34,7 @@ if you already use the identifier ``x`` or ``x1``, ``x2`` etc. in your code.
 Application
 ^^^^^^^^^^^
 To apply your lambda, just call it as a usual function, where all arguments are positional and *must not* be named.
-First argument replaces all occurrences of ``x1`` (or ``x``) in the expression, second replaces ``x2``, etc.; e.g.:
+First argument replaces all occurrences of ``x1`` (or ``x``) in the expression, second one replaces ``x2``, etc.; e.g.:
 
     .. code-block:: python
 
@@ -45,7 +45,7 @@ First argument replaces all occurrences of ``x1`` (or ``x``) in the expression, 
         assert_value(get_42nd({42: "the answer"}), "the answer")
         # one parameter to replace the two occurrences of the same x:
         assert_value(golden_root(1.618), 1.618 ** 2 - 1.618 - 1)
-        # the first parameter goes to every x1, the second one for x2, the third for x3:
+        # the first parameter goes to every x1, the second one for x2, the third one for x3:
         assert_value((x2 * x1 + x1 * x3)(.1, .2, .3), .2 * .1 + .1 * .3)
 
 —

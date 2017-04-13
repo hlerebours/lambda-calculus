@@ -403,7 +403,7 @@ def test_augment_abstraction():
     assert_value(add7(30), 37)  # that one remains unchanged
 
 
-def test_explicit_partial():
+def test_partial():
     my_lambda = x1 ** 5 + x2 ** 4 + x3 ** 3 + x4 ** 2 + x5
     assert isinstance(my_lambda, _LambdaAbstractionBase)
     my_new_lambda = partial(my_lambda, 3)
