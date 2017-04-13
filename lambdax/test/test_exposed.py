@@ -9,11 +9,14 @@ from lambdax import x1, x2
 def test_what_is_exposed():
     operators = {name for name, obj in vars(operator).items()
                  if not name.startswith('_') and not isclass(obj)}
+    operators.discard('xor')
 
-    variables = ['x'] + ['x%d' % i for i in range(1, 10)]
+    variables = {'x'} | {'x%d' % i for i in range(1, 10)}
+    variables |= {v.upper() for v in variables}
 
-    to_expose = operators | set(variables) | {v.upper() for v in variables} | {'λ'}
-    to_expose.discard('xor')
+    special_functions = {'λ', 'comp', 'circle', 'chaining'}
+
+    to_expose = operators | variables | special_functions
 
     exposed = {name for name, obj in vars(lambdax).items()
                if not name.startswith('_') and not ismodule(obj)}

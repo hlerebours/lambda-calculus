@@ -117,6 +117,18 @@ Particular cases
 —
 -
 
+Composition
+^^^^^^^^^^^
+You can compose *λ-abstractions* by explicitly calling one of the functions ``comp``, ``circle`` or ``chaining``:
+"*g* ∘ *f*" in mathematics is written in this context as ``comp(g, f)``, ``circle(g, f)`` or ``chaining(f, g)``
+(mind the order of parameters).
+Caution:
+- if ``f`` and ``g`` are abstractions, g(f) is not composition for now.
+- if both `f` and `g` use the same variable X, they will share the same input in ``g(f)``. Just don't do that for now...
+
+—
+-
+
 Typical use case: the ``map()`` function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. code-block:: python

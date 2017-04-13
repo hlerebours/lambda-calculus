@@ -5,7 +5,7 @@ from functools import partial
 from pytest import raises
 
 import lambdax
-from lambdax import λ, X, x1, x2, x3, x4, x5
+from lambdax import λ, X, x1, x2, x3, x4, x5, comp, chaining
 from lambdax import contains, and_, or_, not_, is_
 from lambdax.lambda_calculus import _LambdaAbstractionBase
 from lambdax.test import assert_value
@@ -401,6 +401,77 @@ def test_augment_abstraction():
     add3 *= 2
     assert_value(add3(30), 66)  # damn!
     assert_value(add7(30), 37)  # that one remains unchanged
+
+
+def test_composition():
+    mul3 = X * 3
+    add7 = X + 7
+    mul3_add7 = comp(add7, mul3)
+    assert isinstance(mul3_add7, _LambdaAbstractionBase)
+    assert_value(mul3_add7(2), 13)
+    add7_mul3 = chaining(add7, mul3)
+    assert isinstance(add7_mul3, _LambdaAbstractionBase)
+    assert_value(add7_mul3(2), 27)
+
+
+def test_compose_with_non_abstraction():
+    # this makes sense
+    suffixed_length = comp(len, X + "def")
+    assert isinstance(suffixed_length, _LambdaAbstractionBase)
+    assert_value(suffixed_length("abc"), 6)
+
+    # that doesn't make sense
+    with raises(ValueError):
+        comp(X + "def", "abc")
+
+
+def test_compose_different_card():
+    # with two different variables, you still provide one input
+    two_var = x1 * 3 + x2 * 7
+    one_var = X + 40
+    composed = comp(one_var, two_var)
+    assert isinstance(composed, _LambdaAbstractionBase)
+    assert_value(composed(2, 4), 74)
+
+    # it makes no sense to have "g ∘ f" where `g` doesn't take exactly one
+    # parameter (the return value of `f`)
+    bad_cardinality = comp(two_var, one_var)
+    assert isinstance(bad_cardinality, _LambdaAbstractionBase)
+    with raises(IndexError):
+        bad_cardinality(1)
+    with raises(IndexError):
+        bad_cardinality(1, 2)
+
+
+def test_tricky_compose():
+    times1 = X
+    times2 = X * 2
+    times3 = X * 3
+    multiply_all = λ(map)(X, range(5))
+    res = list(map(partial(comp, multiply_all), (times1, times2, times3)))
+    assert_value(res, [
+        [1, 2, 3, 4, 5],
+        [2, 4, 6, 8, 10],
+        [3, 6, 9, 12, 15]
+    ])
+
+
+def test_mixing_is_not_composing():
+    # /!\ please don't mix expressions... particularly when it looks like a composition
+    lambda_a = X
+    lambda_b = X.__add__
+    my_lambda = lambda_b(lambda_a)
+    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert_value(my_lambda(3), 6)
+
+    # this is possible, but dangerous because of the shared X
+    lambda_a = X ** 2
+    lambda_b = X + 1
+    lambda_c = lambda_a - lambda_b
+    assert isinstance(lambda_c, _LambdaAbstractionBase)
+    assert_value(lambda_c(1), -1)
+    assert_value(lambda_c(-1), 1)
+    assert_value(lambda_c(0), -1)
 
 
 def test_partial():

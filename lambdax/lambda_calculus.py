@@ -89,7 +89,10 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
 
 class _LambdaAbstraction(_LambdaAbstractionBase):
     def __init__(self, origin, operation, args, kwargs):
-        self._λ_origin = λ(origin)
+        if not isinstance(origin, _LambdaAbstractionBase):
+            raise ValueError("Expected an abstraction, got a `%s`: %s"
+                             % (type(origin).__name__, origin))
+        self._λ_origin = origin
         self._λ_operation = operation
         self._λ_abstract_args = [λ(a) for a in args]
         self._λ_abstract_kwargs = {k: λ(v) for k, v in kwargs.items()}
@@ -137,6 +140,25 @@ def λ(lambda_abstraction):
         lambda_abstraction if isinstance(lambda_abstraction, _LambdaAbstractionBase) else
         _ConstantAbstraction(lambda_abstraction)
     )
+
+
+def comp(g, f):
+    """ Composition operator: return an abstraction that -when reduced- applies `f`
+    on the input data, then applies `g` on the return value of `f` and returns
+    what's returned by `g`.
+    """
+    return _LambdaAbstraction(f, g, (), {})
+
+
+circle = comp
+
+
+def chaining(f, g):
+    """ Like the composition operator, but using the more natural chaining order of parameters:
+    apply `f` on the input data, then apply `g` on the return value of `f`, finally return
+    what's returned by `g`.
+    """
+    return comp(g, f)
 
 
 # Provide all usual operators (defined in built-in module `operator`)
@@ -215,9 +237,9 @@ ixor = λ(op.ixor)
 
 def and_(a, b):
     """ Logical `and` (like the keyword) as a function. """
-    return _LambdaAbstraction(a, lambda a_: a_ and b, (), {})
+    return comp(lambda a_: a_ and b, a)
 
 
 def or_(a, b):
     """ Logical `or` (like the keyword) as a function. """
-    return _LambdaAbstraction(a, lambda a_: a_ or b, (), {})
+    return comp(lambda a_: a_ or b, a)
