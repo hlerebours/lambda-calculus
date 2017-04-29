@@ -1,5 +1,6 @@
 """ For now, all tests related to `lambdax`. It'll be split later. """
 
+from collections import OrderedDict
 from functools import partial
 
 from pytest import raises
@@ -370,6 +371,18 @@ def test_multiple_var_usage():
     assert_value(my_lambda(-2, 3), 26)
 
 
+def test_wrong_var_choices():
+    def test_expr(expr_2args, missing_x):
+        try:
+            expr_2args(1, 2)
+            assert False
+        except TypeError as exc:
+            assert "Missing x%d" % missing_x in str(exc)
+
+    test_expr(x2 ** 2 + x3, missing_x=1)
+    test_expr(x3 ** 2 + x1, missing_x=2)
+
+
 def test_distributivity():
     add6 = X + 3 * 2
     mul2_add3 = X * 2 + 3
@@ -426,21 +439,24 @@ def test_compose_with_non_abstraction():
 
 
 def test_compose_different_card():
-    # with two different variables, you still provide one input
     two_var = x1 * 3 + x2 * 7
-    one_var = X + 40
+    one_var = X * 2
     composed = comp(one_var, two_var)
     assert isinstance(composed, _LambdaAbstractionBase)
-    assert_value(composed(2, 4), 74)
+    assert_value(composed(2, 4), (2 * 3 + 4 * 7) * 2)
+
+    composed = comp(two_var, one_var)
+    assert isinstance(composed, _LambdaAbstractionBase)
 
     # it makes no sense to have "g ∘ f" where `g` doesn't take exactly one
     # parameter (the return value of `f`)
-    bad_cardinality = comp(two_var, one_var)
-    assert isinstance(bad_cardinality, _LambdaAbstractionBase)
-    with raises(IndexError):
-        bad_cardinality(1)
-    with raises(IndexError):
-        bad_cardinality(1, 2)
+    with raises(TypeError):
+        composed(2, 4)
+    with raises(TypeError):
+        composed(3)
+
+    # ... except if the return of `f` has the same arity as `g`
+    assert_value(composed((1,)), two_var(1, 1))
 
 
 def test_tricky_compose():
@@ -474,8 +490,99 @@ def test_mixing_is_not_composing():
     assert_value(lambda_c(0), -1)
 
 
+def test_reduction_too_many_args():
+    my_lambda = x1 + x2
+    with raises(TypeError):
+        my_lambda(1, 2, 3)
+    with raises(TypeError):
+        # the optimization at first reduction doesn't impact that, we still get the error
+        my_lambda(1, 2, 3)
+    assert_value(my_lambda(1, 2), 3)
+    add3 = my_lambda + 3
+    assert isinstance(add3, _LambdaAbstractionBase)
+    assert_value(add3(1, 8), 12)
+    with raises(TypeError):
+        my_lambda(1, 2, 3)
+    with raises(TypeError):
+        add3(1, 2, 3)
+
+    part = partial(my_lambda, 3)
+    assert_value(part(10), 13)
+    assert_value(my_lambda(3, 4), 7)
+    with raises(TypeError):
+        # we also get the error on a partially applied abstraction
+        part(1, 2)
+    assert_value(part(5), 8)
+
+    # these however are explicitly not reductions:
+    other = x1 + x2
+    assert isinstance(other(1, foo=42), _LambdaAbstractionBase)
+    assert isinstance(other(1, 2, foo=42), _LambdaAbstractionBase)
+    assert isinstance(other(1, 2, 3, foo=42), _LambdaAbstractionBase)
+
+
+def test_reduction_fast_path():
+    # assert that two calls to reduce an abstraction don't do twice the same checks
+    my_lambda = x1 + x2
+    other_lambda = my_lambda + 42
+    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert isinstance(other_lambda, _LambdaAbstractionBase)
+
+    my_lambda(1, b=2)
+    my_lambda(c=4)
+    my_lambda(1, 2)  # this is a reduction, following calls will not call the same prototype
+    with raises(TypeError):
+        my_lambda(1, b=2)
+    with raises(TypeError):
+        my_lambda(c=4)
+
+    part = partial(my_lambda, 42)
+    assert_value(part(3), 45)
+    with raises(TypeError):
+        part(4, a=1)
+    with raises(TypeError):
+        part(a=1)
+
+    assert_value(my_lambda(40, 10), 50)
+    assert_value(part(5), 47)
+
+
+def test_identity_not_optimized():
+    my_var = X
+    assert isinstance(my_var, _LambdaAbstractionBase)
+    assert_value(my_var(3), 3)
+    # we can still define the abstraction after having reduced it
+    # in this particular case of an only magic variable as expression,
+    # because those variables must be reusable!
+    assert isinstance(my_var(4, a=3), _LambdaAbstractionBase)
+    assert_value(my_var(2), 2)
+
+
 def test_partial():
     my_lambda = x1 ** 5 + x2 ** 4 + x3 ** 3 + x4 ** 2 + x5
     assert isinstance(my_lambda, _LambdaAbstractionBase)
     my_new_lambda = partial(my_lambda, 3)
     assert_value(my_new_lambda(2, 3, 4, 5), 3 ** 5 + 2 ** 4 + 3 ** 3 + 4 ** 2 + 5)
+
+
+def test_expand():
+    # test that we can also take an iteration of arguments to reduce the abstraction
+    my_join = x1 + x2
+    assert isinstance(my_join, _LambdaAbstractionBase)
+    assert_value(my_join(OrderedDict([("abc", 1), ("def", 2)])), "abcdef")
+    assert_value(my_join([2, 3]), 5)
+
+    # really useful to map a lambda to an iteration of arg tuples:
+    assert list(map(x1 << x2, ((i, 2) for i in range(5)))) == [0, 4, 8, 12, 16]
+    assert list(map(x1 * 2 + x2, ((i, 3) for i in range(5)))) == [3, 5, 7, 9, 11]
+
+
+def test_degenerate_expand():
+    # test that we cannot take an iteration of arguments to reduce a non-multivariate abstraction
+    plus3 = X + 3
+    assert isinstance(plus3, _LambdaAbstractionBase)
+    assert_value(plus3(2), 5)
+    with raises(TypeError):
+        plus3([3])
+
+    assert isinstance(λ(42)([]), _LambdaAbstractionBase)

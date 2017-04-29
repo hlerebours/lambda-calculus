@@ -34,7 +34,8 @@ if you already use the identifier ``x`` or ``x1``, ``x2`` etc. in your code.
 Application
 ^^^^^^^^^^^
 To apply your lambda, just call it as a usual function, where all arguments are positional and *must not* be named.
-First argument replaces all occurrences of ``x1`` (or ``x``) in the expression, second one replaces ``x2``, etc.; e.g.:
+First argument replaces all occurrences of ``x1`` (or ``x``) in the expression, second one replaces ``x2``, etc.
+Multivariate lambdas can be reduced by providing either all arguments "separately" or an only "iterable" of arguments.
 
     .. code-block:: python
 
@@ -47,6 +48,8 @@ First argument replaces all occurrences of ``x1`` (or ``x``) in the expression, 
         assert_value(golden_root(1.618), 1.618 ** 2 - 1.618 - 1)
         # the first parameter goes to every x1, the second one for x2, the third one for x3:
         assert_value((x2 * x1 + x1 * x3)(.1, .2, .3), .2 * .1 + .1 * .3)
+        # all arguments are provided in one tuple:
+        assert_value((x1 + x2 * x3)([2, 3, 5]), 2 + 3 * 5)
 
 —
 -
@@ -123,8 +126,8 @@ You can compose *λ-abstractions* by explicitly calling one of the functions ``c
 "*g* ∘ *f*" in mathematics is written in this context as ``comp(g, f)``, ``circle(g, f)`` or ``chaining(f, g)``
 (mind the order of parameters).
 Caution:
-- if ``f`` and ``g`` are abstractions, g(f) is not composition for now.
-- if both `f` and `g` use the same variable X, they will share the same input in ``g(f)``. Just don't do that for now...
+- g(f) is never a composition of ``f`` and ``g``
+- if both `f` and `g` use the same variable X, they will share the same input in ``g(f)``. Just don't do that...
 
 —
 -
@@ -136,6 +139,9 @@ Typical use case: the ``map()`` function
     values = list(map((-x * 3) % 8, range(5)))
     assert all(isinstance(v, int) for v in values)
     assert values == [0, 5, 2, 7, 4]
+
+    assert list(map(x2 ** x1, enumerate([-1, 1] * 3))) == [1] * 6
+    # [(-1) ** 0, 1 ** 1, (-1) ** 2, ...]
 
 —
 -

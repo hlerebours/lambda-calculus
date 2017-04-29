@@ -6,7 +6,7 @@ from setuptools import setup
 __pkg_name__ = 'lambdax'
 __author__ = "Hugues Lerebours"
 
-VERSION = '0.0.3'
+VERSION = '0.1.0'
 DESCRIPTION = "Write lambda expressions in a simpler way"
 
 with open('README.rst') as f:

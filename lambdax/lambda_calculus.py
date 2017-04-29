@@ -47,29 +47,58 @@ class _AddDunderMethods(type):
 class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
     _β_reducing = None
 
+    def __init__(self, variable_indices):
+        """ :type variable_indices: set """
+        self._λ_var_indices = variable_indices
+
     @abc.abstractmethod
     def _β(self, *input_data):
         """ β-reduction of the λ-abstraction """
 
     def __call__(self, *args, **kwargs):
+        nb_args = len(args)
+        nb_vars = len(self._λ_var_indices)
         if not self._β_reducing:
-            if (args and not kwargs and
-                    not any(isinstance(v, _LambdaAbstractionBase)
-                            for v in itertools.chain(args, kwargs.values()))):
-                # For now, the only thing we now about β-reduction is that it's done by providing
-                # at least one argument, no named argument and no abstraction, so here we assume
-                # we are reducing.
-
-                # Also, make all following calls be β-reductions too. The incentive is to speed up
-                # vectorized operations or anytime a lambda is applied on many elements:
-                # it's defined once and applied many times, so let's cache the reduction.
-                if self._β_reducing is None:
-                    self._β_reducing = True
-            else:
-                # Hence here we assume we're still defining the λ-abstraction
+            if (kwargs or bool(nb_args) ^ bool(nb_vars) or
+                    any(isinstance(v, _LambdaAbstractionBase)
+                        for v in itertools.chain(args, kwargs.values()))):
+                # It's explicitly not a β-reduction, so this is part of the declaration
                 return _LambdaAbstraction(self, _apply, args, kwargs)
 
-        return self._β(*args, **kwargs)
+            unused_var = next((v for v in range(nb_vars) if v not in self._λ_var_indices), None)
+            if unused_var is not None:
+                # Unsupported/weird choice of variables
+                raise TypeError("Missing x%d in the expression of the λ-abstraction"
+                                % (unused_var + 1))
+
+            # Also, make all following calls to the λ-abstraction be β-reductions too, if possible.
+            # The incentive is to speed up vectorized operations or anytime a lambda is applied
+            # on many elements: it's defined once and applied many times.
+            if self._β_reducing is None:
+                self._β_reducing = True
+
+        if kwargs:
+            raise TypeError("**kwargs provided, whereas the λ-abstraction is being β-reduced:"
+                            " you must provide positional arguments only to apply it.")
+
+        if nb_args != nb_vars:
+            try:
+                # if we have exactly one argument provided for more variables,
+                # we consider it as an iterable of packed arguments
+                args, = args
+                nb_args = len(args)
+                assert nb_args == nb_vars
+            except Exception:
+                # To avoid mistakes, if the number of provided variables is wrong here
+                # to be a β-reduction, we still consider it's a missed attempt to β-reduce
+                # rather than a part of the declaration.
+                raise TypeError("The λ-abstraction holds %d variables, but %d arguments were "
+                                "given. If the intent was not to β-reduce the expression, you "
+                                "must name or surround with %s() at least one variable."
+                                % (nb_vars, nb_args, λ.__name__))
+
+        # Exactly all arguments are provided, let's β-reduce.
+        return self._β(*args)
 
     # just to silence pylint when doing X[42], -X, etc.
     # these methods are actually implemented by the metaclass
@@ -96,6 +125,10 @@ class _LambdaAbstraction(_LambdaAbstractionBase):
         self._λ_operation = operation
         self._λ_abstract_args = [λ(a) for a in args]
         self._λ_abstract_kwargs = {k: λ(v) for k, v in kwargs.items()}
+        variables = self._λ_origin._λ_var_indices.copy()  # pylint: disable=protected-access
+        for a in itertools.chain(self._λ_abstract_args, self._λ_abstract_kwargs.values()):
+            variables |= a._λ_var_indices  # pylint: disable=protected-access
+        super().__init__(variables)
 
     def _β(self, *input_data):
         return self._λ_operation(
@@ -112,15 +145,16 @@ class _IdentityAbstraction(_LambdaAbstractionBase):
     _β_reducing = False
 
     def __init__(self, idx):
-        self._λ_index = idx
+        super().__init__({idx})
 
     def _β(self, *input_data):
-        return input_data[self._λ_index]
+        return input_data[next(iter(self._λ_var_indices))]
 
 
 class _ConstantAbstraction(_LambdaAbstractionBase):
     def __init__(self, constant):
         self._λ_constant = constant
+        super().__init__(set())
 
     def _β(self, *input_data):
         return self._λ_constant
