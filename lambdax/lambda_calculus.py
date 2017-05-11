@@ -119,7 +119,7 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
 class _LambdaAbstraction(_LambdaAbstractionBase):
     def __init__(self, origin, operation, args, kwargs):
         if not isinstance(origin, _LambdaAbstractionBase):
-            raise ValueError("Expected an abstraction, got a `%s`: %s"
+            raise ValueError("Expected an abstraction, got a `%s` (%s)"
                              % (type(origin).__name__, origin))
         self._λ_origin = origin
         self._λ_operation = operation

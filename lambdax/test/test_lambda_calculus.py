@@ -561,8 +561,28 @@ def test_identity_not_optimized():
 def test_partial():
     my_lambda = x1 ** 5 + x2 ** 4 + x3 ** 3 + x4 ** 2 + x5
     assert isinstance(my_lambda, _LambdaAbstractionBase)
-    my_new_lambda = partial(my_lambda, 3)
-    assert_value(my_new_lambda(2, 3, 4, 5), 3 ** 5 + 2 ** 4 + 3 ** 3 + 4 ** 2 + 5)
+    after3 = partial(my_lambda, 3)
+    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert not isinstance(after3, _LambdaAbstractionBase)
+    assert_value(my_lambda(-3, 4, -5, -6, -7), (-3) ** 5 + 4 ** 4 + (-5) ** 3 + 6 ** 2 + -7)
+    assert_value(after3(4, 5, 6, 7), 3 ** 5 + 4 ** 4 + 5 ** 3 + 6 ** 2 + 7)
+    assert_value(after3(-4, 5, -6, 7), 3 ** 5 + (-4) ** 4 + 5 ** 3 + (-6) ** 2 + 7)
+
+
+def test_particular_abstractions():
+    my_id = X
+    assert isinstance(my_id, _LambdaAbstractionBase)
+    assert_value(my_id(3), 3)
+    with raises(TypeError):
+        my_id(1, 2)
+    my_apply_no_arg = my_id()
+    assert isinstance(my_apply_no_arg, _LambdaAbstractionBase)
+    assert_value(my_apply_no_arg(int), 0)
+
+    # combine a variable abstraction with a constant one:
+    my_expr = my_id * λ(3)
+    assert isinstance(my_expr, _LambdaAbstractionBase)
+    assert_value(my_expr(4), 12)
 
 
 def test_expand():
@@ -572,9 +592,15 @@ def test_expand():
     assert_value(my_join(OrderedDict([("abc", 1), ("def", 2)])), "abcdef")
     assert_value(my_join([2, 3]), 5)
 
+    def assert_list(it, ref_list):
+        chal_list = list(it)
+        assert len(chal_list) == len(ref_list), "%s != %s" % (chal_list, ref_list)
+        for a, b in zip(chal_list, ref_list):
+            assert_value(a, b)
+
     # really useful to map a lambda to an iteration of arg tuples:
-    assert list(map(x1 << x2, ((i, 2) for i in range(5)))) == [0, 4, 8, 12, 16]
-    assert list(map(x1 * 2 + x2, ((i, 3) for i in range(5)))) == [3, 5, 7, 9, 11]
+    assert_list(map(x1 << x2, ((i, 2) for i in range(5))), [0, 4, 8, 12, 16])
+    assert_list(map(x1 * 2 + x2, ((i, 3) for i in range(5))), [3, 5, 7, 9, 11])
 
 
 def test_degenerate_expand():
