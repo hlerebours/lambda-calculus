@@ -2,6 +2,7 @@
 
 from collections import OrderedDict
 from functools import partial
+import random
 
 from pytest import raises
 
@@ -583,6 +584,17 @@ def test_particular_abstractions():
     my_expr = my_id * λ(3)
     assert isinstance(my_expr, _LambdaAbstractionBase)
     assert_value(my_expr(4), 12)
+
+    # not reducing constants allows this actual use case:
+    my_random = λ(random.random)() * 100 + 10
+    assert isinstance(my_random, _LambdaAbstractionBase)
+    values = {my_random() for _ in range(42)}
+    assert 10 <= min(values) < max(values) <= 110
+
+    # example of an abstract call to a standard function with parameter(s):
+    value_set = λ(set)(X.values())
+    assert isinstance(value_set, _LambdaAbstractionBase)
+    assert_value(value_set({"a": 1, "b": 2, "c": 1}), {1, 2})
 
 
 def test_expand():

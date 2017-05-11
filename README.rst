@@ -64,18 +64,48 @@ i.e. a magic variable, a provided operator-as-function or the special function `
 
 Particular cases
 ^^^^^^^^^^^^^^^^
-1. If there is a call with parameter(s) inside your expression, at least one of the parameters
-   must be named or be an abstraction to distinguish your declaration from a *β-reduction*.
-   You can apply ``λ`` on an argument if none of them already is a *λ-abstraction*. Examples:
+1. Useful to know: if you want to call a standard function as part of a lambda expression, for instance
+   with an abstract parameter, you must first turn the function itself into an abstraction.
+   Just wrap it with the function ``λ`` to do so. Example:
 
    .. code-block:: python
 
        from lambdax import λ
+       def already_existing_function(a, exp=1):
+           """ Standard function """
+           return a ** exp - 1
+       # the lambda below will take one parameter, call the standard function with two parameters
+       # and modify the result:
+       my_lambda = (λ(already_existing_function)(x, exp=x) - 5) * 2
+       assert_value(my_lambda(3), ((3 ** 3 - 1) - 5) * 2)
+
+       # note: an only constant is irreducible (it would be pointless to reduce a constant...);
+       # it allows to call a standard function inside an expression:
+       my_int = λ(int)()  # this is not the reduction of λ(int) but the equivalent of `lambda: int()`
+       assert my_int is not int
+       assert callable(my_int)
+       # and because `my_int` is not an only constant (it's a call to a constant), it's reducible:
+       assert_value(my_int(), 0)
+
+2. If there is a call with parameter(s) applied on a variable expression inside your lambda,
+   at least one of the parameters must be named or be an abstraction to distinguish your declaration from
+   a *β-reduction*. You can apply ``λ`` on an argument if none of them already is a *λ-abstraction*. Examples:
+
+   .. code-block:: python
+
        assert_value(x1(2), 2)  # calling x1 with 2 as argument applies the identity function to 2
        apply_is_back = x1(x2)  # the call is clearly part of the abstraction
        on_4dot2 = x(λ(4.2))  # it's explicitly an abstraction thanks to `λ`
-       imaginary_4_as = x(imag=4)  # it's an abstraction because there is a named parameter in the call
-       just_call = x()  # it's an abstraction because there is no parameter provided to the call
+       imaginary_4_as = x(imag=4)  # it's an abstraction: there is a named parameter in the call
+       just_call = x()  # it's an abstraction: the callee is variable but no parameter is provided
+
+   If the callee is a constant however, it won't be reduced, no matter the parameters provided (see 1.):
+
+   .. code-block:: python
+
+       called = λ(already_existing_function)(3, 2)
+       reduced = called()
+       assert_value(reduced, 3 ** 2 - 1)
 
    If you were wondering, the lambdas defined above can be used like that:
 
@@ -85,19 +115,6 @@ Particular cases
        assert_value(on_4dot2(int), 4)
        assert_value(imaginary_4_as(complex), complex(0, 4))
        assert_value(just_call(str), '')
-
-2. As well as writing arguments as explicit abstractions, if your expression can't begin with a "magic thing" coming from
-   ``lambdax``, you can still wrap it with the function ``λ`` to make it an explicit abstraction. Examples:
-
-   .. code-block:: python
-
-       def already_existing_function(a, exp=1):
-           """ Standard function """
-           return a ** exp - 1
-       # the lambda below takes one parameter, calls a function with two parameters
-       # and modifies the result:
-       my_lambda = (λ(already_existing_function)(x, exp=x) - 5) * 2
-       assert_value(my_lambda(3), 42)
 
 3. The package re-implements the common "operator" functions provided by the built-in module ``operator``
    to be directly usable in a lambda expression.

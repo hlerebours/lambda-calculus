@@ -56,6 +56,9 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
         """ β-reduction of the λ-abstraction """
 
     def __call__(self, *args, **kwargs):
+        """ Entry point to reduce an entire expression, not a part of an expression.
+        Can also be used to make an actual call as part of the expression.
+        """
         nb_args = len(args)
         nb_vars = len(self._λ_var_indices)
         if not self._β_reducing:
@@ -155,6 +158,9 @@ class _ConstantAbstraction(_LambdaAbstractionBase):
     def __init__(self, constant):
         self._λ_constant = constant
         super().__init__(set())
+
+    def __call__(self, *args, **kwargs):
+        return _LambdaAbstraction(self, _apply, args, kwargs)
 
     def _β(self, *input_data):
         return self._λ_constant
