@@ -10,6 +10,7 @@ are redefined here to be immediately usable in lambda expressions.
 
 import abc
 import itertools
+import numbers
 import operator as op
 import sys
 
@@ -18,6 +19,13 @@ _operators = vars(op)
 
 def _apply(fun, *args, **kwargs):
     return fun(*args, **kwargs)
+
+
+def _reverse(fun):
+    def _reversed_fun(a, b):
+        return fun(b, a)
+
+    return _reversed_fun
 
 
 def _generate_magic_method(operation):
@@ -34,13 +42,26 @@ class _AddDunderMethods(type):
     @classmethod
     def __prepare__(mcs, _name, _bases):
         # add operators declared in `operator` standard module (e.g. __add__, __mul__, ...)
-        return {
-            method_name: _generate_magic_method(op)
-            for method_name, op in (
-                ('__%s__' % op_name.rstrip('_'), op)
-                for op_name, op in _operators.items()
+        from_operator = {
+            method_name: o
+            for method_name, o in (
+                ('__%s__' % op_name.rstrip('_'), o)
+                for op_name, o in _operators.items()
                 if not op_name.startswith('_')
             ) if method_name in _operators
+        }
+        # add reverse operators defined on numbers (e.g. __radd__, etc.)
+        reverse_from_numbers = (
+            (method_name, _reverse(from_operator[base_method_name]))
+            for method_name, base_method_name in (
+                (method_name, method_name.replace('r', '', 1))
+                for method_name in dir(numbers.Integral)
+                if method_name.startswith('__r')
+            ) if base_method_name in from_operator
+        )
+        return {
+            method_name: _generate_magic_method(o)
+            for method_name, o in itertools.chain(from_operator.items(), reverse_from_numbers)
         }
 
 

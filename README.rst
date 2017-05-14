@@ -56,8 +56,9 @@ Multivariate lambdas can be reduced by providing either all arguments "separatel
 
 Limitations
 ^^^^^^^^^^^
-The first identifier in the expression must be one of the public members of the module ``lambdax``,
-i.e. a magic variable, a provided operator-as-function or the special function ``λ`` (see below).
+An expression is an abstraction (a "lambda") if it starts with one of the public members of the module ``lambdax``,
+i.e. a magic variable, a provided operator-as-function or the special function ``λ`` (see below),
+or with an arithmetic operation (in that case, one of the operands must be an abstraction itself).
 
 —
 -
