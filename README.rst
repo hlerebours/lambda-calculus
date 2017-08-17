@@ -48,7 +48,7 @@ Multivariate lambdas can be reduced by providing either all arguments "separatel
         assert_value(golden_root(1.618), 1.618 ** 2 - 1.618 - 1)
         # the first parameter goes to every x1, the second one for x2, the third one for x3:
         assert_value((x2 * x1 + x1 * x3)(.1, .2, .3), .2 * .1 + .1 * .3)
-        # all arguments are provided in one tuple:
+        # all arguments are provided as one list of values:
         assert_value((x1 + x2 * x3)([2, 3, 5]), 2 + 3 * 5)
 
 —
@@ -149,9 +149,19 @@ Caution:
 —
 -
 
-Typical use case: the ``map()`` function
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Typical use cases
+^^^^^^^^^^^^^^^^^
 .. code-block:: python
+
+    complexes = [10 + 2j, 3 + 40j, 5 + 6j]
+
+    to_dicts = list(map(λ(dict)(r=x.real, i=x.imag), complexes))
+    assert isinstance(to_dicts, list) and all(isinstance(v, dict) for v in to_dicts)
+    assert to_dicts == [{'r': 10, 'i': 2}, {'r': 3, 'i': 40}, {'r': 5, 'i': 6}]
+
+    imag_by_real = list(map(x['i'], sorted(to_dicts, key=x['r'])))
+    assert isinstance(imag_by_real, list) and all(isinstance(v, float) for v in imag_by_real)
+    assert imag_by_real == [40, 6, 2]
 
     values = list(map((-x * 3) % 8, range(5)))
     assert all(isinstance(v, int) for v in values)
