@@ -2,7 +2,7 @@
 This module only contains a helper for the tests.
 """
 
-from lambdax.lambda_calculus import _LambdaAbstractionBase
+from lambdax.lambda_calculus import is_λ
 
 
 def assert_value(value, expected):
@@ -10,5 +10,5 @@ def assert_value(value, expected):
     otherwise calling == on it would return another abstraction (which would be considered True
     by the assert.
     """
-    assert not isinstance(value, _LambdaAbstractionBase)
+    assert not is_λ(value)
     assert value == expected

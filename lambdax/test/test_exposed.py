@@ -14,7 +14,7 @@ def test_what_is_exposed():
     variables = {'x'} | {'x%d' % i for i in range(1, 10)}
     variables |= {v.upper() for v in variables}
 
-    special_functions = {'λ', 'comp', 'circle', 'chaining'}
+    special_functions = {'λ', 'is_λ', 'comp', 'circle', 'chaining'}
 
     to_expose = operators | variables | special_functions
 

@@ -84,8 +84,7 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
         nb_vars = len(self._λ_var_indices)
         if not self._β_reducing:
             if (kwargs or bool(nb_args) ^ bool(nb_vars) or
-                    any(isinstance(v, _LambdaAbstractionBase)
-                        for v in itertools.chain(args, kwargs.values()))):
+                    any(is_λ(v) for v in itertools.chain(args, kwargs.values()))):
                 # It's explicitly not a β-reduction, so this is part of the declaration
                 return _LambdaAbstraction(self, _apply, args, kwargs)
 
@@ -142,7 +141,7 @@ class _LambdaAbstractionBase(metaclass=_AddDunderMethods):
 
 class _LambdaAbstraction(_LambdaAbstractionBase):
     def __init__(self, origin, operation, args, kwargs):
-        if not isinstance(origin, _LambdaAbstractionBase):
+        if not is_λ(origin):
             raise ValueError("Expected an abstraction, got a `%s` (%s)"
                              % (type(origin).__name__, origin))
         self._λ_origin = origin
@@ -198,9 +197,14 @@ def λ(lambda_abstraction):
     :rtype: _LambdaAbstractionBase
     """
     return (
-        lambda_abstraction if isinstance(lambda_abstraction, _LambdaAbstractionBase) else
+        lambda_abstraction if is_λ(lambda_abstraction) else
         _ConstantAbstraction(lambda_abstraction)
     )
+
+
+def is_λ(expression):
+    """ Tell if an expression is a λ-abstraction. """
+    return isinstance(expression, _LambdaAbstractionBase)
 
 
 def comp(g, f):

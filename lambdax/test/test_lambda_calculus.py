@@ -7,9 +7,8 @@ import random
 from pytest import raises
 
 import lambdax
-from lambdax import λ, X, x1, x2, x3, x4, x5, comp, chaining
+from lambdax import λ, X, x1, x2, x3, x4, x5, is_λ, comp, chaining
 from lambdax import contains, and_, or_, not_, is_
-from lambdax.lambda_calculus import _LambdaAbstractionBase
 from lambdax.test import assert_value
 
 
@@ -24,7 +23,7 @@ def test_provided_magic_variables():
 
 def test_identity():
     identity = X
-    assert isinstance(identity, _LambdaAbstractionBase)
+    assert is_λ(identity)
     assert_value(identity(int), int)
     assert_value(identity(42), 42)
 
@@ -38,7 +37,7 @@ def test_attribute():
             self.test = 51
 
     get_my_attr = X.test
-    assert isinstance(get_my_attr, _LambdaAbstractionBase)
+    assert is_λ(get_my_attr)
     assert_value(get_my_attr(Foo()), 51)
     assert_value(get_my_attr(Foo), 42)
 
@@ -46,14 +45,14 @@ def test_attribute():
 def test_property():
     # delay the read of an property: here, get_imaginary_part ~= lambda x: x.imag
     get_imaginary_part = X.imag
-    assert isinstance(get_imaginary_part, _LambdaAbstractionBase)
+    assert is_λ(get_imaginary_part)
     assert_value(get_imaginary_part(complex(42, 51)), 51)
 
 
 def test_instantiation():
     # delay the instantiation of a class: here, instantiate ~= lambda x: x()
     instantiate = X()
-    assert isinstance(instantiate, _LambdaAbstractionBase)
+    assert is_λ(instantiate)
     assert_value(instantiate(int), 0)
     assert_value(instantiate(str), "")
 
@@ -61,7 +60,7 @@ def test_instantiation():
 def test_method_no_arg():
     # delay the call to the method __neg__ with no argument
     neg = -X
-    assert isinstance(neg, _LambdaAbstractionBase)
+    assert is_λ(neg)
     assert_value(list(map(neg, range(4))), [0, -1, -2, -3])
 
 
@@ -69,7 +68,7 @@ def test_method_with_constant():
     # delay the application of a method taking a constant;
     # here, join ~= lambda x: x.join(['O', 'o'])
     join = X.join(λ(['O', 'o']))  # λ(..) prevents from β-reducing too soon
-    assert isinstance(join, _LambdaAbstractionBase)
+    assert is_λ(join)
     assert_value(join('_'), 'O_o')
 
 
@@ -77,7 +76,7 @@ def test_method_with_variable():
     # delay the application of a method taking a variable;
     # here, join ~= lambda x, y: x.join(y)
     join = x1.join(x2)
-    assert isinstance(join, _LambdaAbstractionBase)
+    assert is_λ(join)
     assert_value(join('_', ['O', 'o']), 'O_o')
 
 
@@ -85,7 +84,7 @@ def test_method_with_variable2():
     # the same as before but with variables taken in another order;
     # here, join ~= lambda x, y: y.join(x)
     join = x2.join(x1)
-    assert isinstance(join, _LambdaAbstractionBase)
+    assert is_λ(join)
     assert_value(join(['O', 'o'], '_'), 'O_o')
 
 
@@ -94,27 +93,27 @@ def test_asymmetric_method():
     # note that 2.__floordiv__ exists; this test checks that we don't call it by mistake:
     # half(21) != 2.__floordiv__(21) (== 2 // 21 == 0)
     half = X // 2
-    assert isinstance(half, _LambdaAbstractionBase)
+    assert is_λ(half)
     assert_value(half(21), 10)
 
 
 def test_multiply():
     # delay the application of a usual infix operator
     my_lambda = X * 4
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(3), 12)
 
 
 def test_power():
     # delay the application of another usual infix operator
     my_lambda = X ** 3
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(2), 8)
 
 
 def test_getitem():
     my_lambda = X["abc"]
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda({"abc": "Foo"}), "Foo")
 
 
@@ -126,14 +125,14 @@ def test_getslice():
 
 def test_abs():
     my_lambda = abs(X)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(-12), 12)
     assert_value(my_lambda(13), 13)
 
 
 def test_bit_and():
     my_lambda = X & 2
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(0), 0)
     assert_value(my_lambda(1), 0)
     assert_value(my_lambda(2), 2)
@@ -144,7 +143,7 @@ def test_bit_and():
 
 def test_bit_shift():
     my_lambda = X << 2
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(0), 0)
     assert_value(my_lambda(1), 4)
     assert_value(my_lambda(3), 12)
@@ -152,7 +151,7 @@ def test_bit_shift():
 
 def test_bit_flip():
     my_lambda = ~X
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(0), -1)
     assert_value(my_lambda(1), -2)
     assert_value(my_lambda(3), -4)
@@ -160,7 +159,7 @@ def test_bit_flip():
 
 def test_eq():
     my_lambda = X + 3 == 7
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert my_lambda(4) is True
     assert my_lambda(-4) is False
     assert my_lambda(True) is False
@@ -168,7 +167,7 @@ def test_eq():
 
 def test_lt():
     my_lambda = X < 42
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert my_lambda(-10) is True
     assert my_lambda(42) is False
     assert my_lambda(51) is False
@@ -176,7 +175,7 @@ def test_lt():
 
 def test_ge():
     my_lambda = X >= 10
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert my_lambda(12) is True
     assert my_lambda(10) is True
     assert my_lambda(-50) is False
@@ -185,15 +184,15 @@ def test_ge():
 def test_len():
     my_lambda1 = X.__len__()  # either you directly call the operator
     my_lambda2 = λ(len)(X)  # or you wrap the built-in function to make it an abstraction
-    assert isinstance(my_lambda1, _LambdaAbstractionBase)
-    assert isinstance(my_lambda2, _LambdaAbstractionBase)
+    assert is_λ(my_lambda1)
+    assert is_λ(my_lambda2)
     assert_value(my_lambda1("abc"), 3)
     assert_value(my_lambda2("24-character-long-string"), 24)
 
 
 def test_bool():
     my_lambda = λ(bool)(X)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
 
     # actually calls `__bool__`
     assert my_lambda(0) is False
@@ -208,25 +207,25 @@ def test_bool():
 
 def test_getattr():
     get_imag = λ(getattr)(X, 'imag')
-    assert isinstance(get_imag, _LambdaAbstractionBase)
+    assert is_λ(get_imag)
     assert_value(get_imag(complex(14, 42)), 42)
     with raises(AttributeError):
         get_imag('foo')
 
     get_attr = λ(getattr)(42, X)
-    assert isinstance(get_attr, _LambdaAbstractionBase)
+    assert is_λ(get_attr)
     assert_value(get_attr('__str__')(), '42')
     with raises(AttributeError):
         get_attr('foo')
 
     my_getattr = λ(getattr)(x1, x2)
-    assert isinstance(my_getattr, _LambdaAbstractionBase)
+    assert is_λ(my_getattr)
     assert_value(my_getattr(14, '__str__')(), '14')
     with raises(AttributeError):
         my_getattr(14, 'foo')
 
     my_getattr_with_default = λ(getattr)(x1, x2, x3)
-    assert isinstance(my_getattr_with_default, _LambdaAbstractionBase)
+    assert is_λ(my_getattr_with_default)
     assert_value(my_getattr_with_default(15, '__str__', int)(), '15')
     assert_value(my_getattr_with_default(16, 'foo', int)(), 0)
     assert_value(my_getattr_with_default(17, 'foo', 1.4), 1.4)
@@ -236,8 +235,8 @@ def test_contains():
     contains_1 = X.__contains__(1)  # either you directly call the operator
     contains_2 = contains(X, 2)  # or you call the function provided by `lambdax` for "convenience"
     is_in_1_2_3 = contains([1, 2, 3], X)
-    assert isinstance(contains_1, _LambdaAbstractionBase)
-    assert isinstance(contains_2, _LambdaAbstractionBase)
+    assert is_λ(contains_1)
+    assert is_λ(contains_2)
 
     assert contains_1((0, 1, 2)) is True
     assert contains_1(range(3)) is True
@@ -258,7 +257,7 @@ def test_contains():
 
 def test_is():
     is_false = is_(X, False)
-    assert isinstance(is_false, _LambdaAbstractionBase)
+    assert is_λ(is_false)
     assert is_false(False) is True
     assert is_false(True) is False
     assert is_false(0) is False
@@ -268,7 +267,7 @@ def test_is():
 
 def test_logic_and():
     my_lambda = and_(X, 4)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(0), 0)
     assert_value(my_lambda(1), 4)
     assert_value(my_lambda(-3), 4)
@@ -280,7 +279,7 @@ def test_logic_and():
 
 def test_logic_or():
     my_lambda = or_(X, 4)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(0), 4)
     assert_value(my_lambda(1), 1)
     assert_value(my_lambda(-3), -3)
@@ -292,7 +291,7 @@ def test_logic_or():
 
 def test_logic_not():
     my_lambda = not_(X)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert my_lambda(0) is True
     assert my_lambda(1) is False
     assert my_lambda(-3) is False
@@ -304,7 +303,7 @@ def test_logic_not():
 
 def test_hard_use_case():
     my_lambda = λ(len)(X["abc"][5:])
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda({"abc": "24-character-long-string"}), 24 - 5)
 
 
@@ -325,13 +324,13 @@ def test_setattr_forbidden():
 
 def test_two_variables():
     my_lambda = x1 + x2
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(1, 5), 6)
 
 
 def test_two_variables_harder():
     my_lambda = (x1 + 4) * x2 + 7
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(3, 5), 42)
 
 
@@ -342,31 +341,31 @@ def test_with_named_param():
             return arg, named
 
     my_lambda = x1.meth(x2)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(Class(), 1), (1, 42))
 
     my_lambda = x1.meth(arg=x2)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(Class(), 2), (2, 42))
 
     my_lambda = x1.meth(3, x2)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(Class(), 51), (3, 51))
 
     my_lambda = x1.meth(4, named=x2)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(Class(), 52), (4, 52))
 
 
 def test_many_variables():
     my_lambda = x1 ** 5 + x2 ** 4 + x3 ** 3 + x4 ** 2 + x5
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(1, 2, 3, 4, 5), 1 + 2 ** 4 + 3 ** 3 + 4 ** 2 + 5)
 
 
 def test_multiple_var_usage():
     my_lambda = x1 ** 2 + x2 + x1 * 4
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(3, 7), 28)
     my_lambda += x2 ** 3  # it really is the same `x2` than before
     assert_value(my_lambda(-2, 3), 26)
@@ -387,8 +386,8 @@ def test_wrong_var_choices():
 def test_distributivity():
     add6 = X + 3 * 2
     mul2_add3 = X * 2 + 3
-    assert isinstance(add6, _LambdaAbstractionBase)
-    assert isinstance(mul2_add3, _LambdaAbstractionBase)
+    assert is_λ(add6)
+    assert is_λ(mul2_add3)
     assert_value(add6(7), 13)
     assert_value(mul2_add3(7), 17)
 
@@ -397,8 +396,8 @@ def test_associativity():
     by_syntax = (X + 3) * 2
     by_definition = X + 3
     by_definition *= 2
-    assert isinstance(by_syntax, _LambdaAbstractionBase)
-    assert isinstance(by_definition, _LambdaAbstractionBase)
+    assert is_λ(by_syntax)
+    assert is_λ(by_definition)
     assert_value(by_syntax(7), 20)
     assert_value(by_definition(7), 20)
 
@@ -406,8 +405,8 @@ def test_associativity():
 def test_augment_abstraction():
     add3 = X + 3
     add7 = add3 + 4
-    assert isinstance(add3, _LambdaAbstractionBase)
-    assert isinstance(add7, _LambdaAbstractionBase)
+    assert is_λ(add3)
+    assert is_λ(add7)
     assert_value(add3(10), 13)
     assert_value(add7(10), 17)
     assert_value(add3(20), 23)
@@ -421,17 +420,17 @@ def test_composition():
     mul3 = X * 3
     add7 = X + 7
     mul3_add7 = comp(add7, mul3)
-    assert isinstance(mul3_add7, _LambdaAbstractionBase)
+    assert is_λ(mul3_add7)
     assert_value(mul3_add7(2), 13)
     add7_mul3 = chaining(add7, mul3)
-    assert isinstance(add7_mul3, _LambdaAbstractionBase)
+    assert is_λ(add7_mul3)
     assert_value(add7_mul3(2), 27)
 
 
 def test_compose_with_non_abstraction():
     # this makes sense
     suffixed_length = comp(len, X + "def")
-    assert isinstance(suffixed_length, _LambdaAbstractionBase)
+    assert is_λ(suffixed_length)
     assert_value(suffixed_length("abc"), 6)
 
     # that doesn't make sense
@@ -443,11 +442,11 @@ def test_compose_different_card():
     two_var = x1 * 3 + x2 * 7
     one_var = X * 2
     composed = comp(one_var, two_var)
-    assert isinstance(composed, _LambdaAbstractionBase)
+    assert is_λ(composed)
     assert_value(composed(2, 4), (2 * 3 + 4 * 7) * 2)
 
     composed = comp(two_var, one_var)
-    assert isinstance(composed, _LambdaAbstractionBase)
+    assert is_λ(composed)
 
     # it makes no sense to have "g ∘ f" where `g` doesn't take exactly one
     # parameter (the return value of `f`)
@@ -478,14 +477,14 @@ def test_mixing_is_not_composing():
     lambda_a = X
     lambda_b = X.__add__
     my_lambda = lambda_b(lambda_a)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     assert_value(my_lambda(3), 6)
 
     # this is possible, but dangerous because of the shared X
     lambda_a = X ** 2
     lambda_b = X + 1
     lambda_c = lambda_a - lambda_b
-    assert isinstance(lambda_c, _LambdaAbstractionBase)
+    assert is_λ(lambda_c)
     assert_value(lambda_c(1), -1)
     assert_value(lambda_c(-1), 1)
     assert_value(lambda_c(0), -1)
@@ -500,7 +499,7 @@ def test_reduction_too_many_args():
         my_lambda(1, 2, 3)
     assert_value(my_lambda(1, 2), 3)
     add3 = my_lambda + 3
-    assert isinstance(add3, _LambdaAbstractionBase)
+    assert is_λ(add3)
     assert_value(add3(1, 8), 12)
     with raises(TypeError):
         my_lambda(1, 2, 3)
@@ -517,17 +516,17 @@ def test_reduction_too_many_args():
 
     # these however are explicitly not reductions:
     other = x1 + x2
-    assert isinstance(other(1, foo=42), _LambdaAbstractionBase)
-    assert isinstance(other(1, 2, foo=42), _LambdaAbstractionBase)
-    assert isinstance(other(1, 2, 3, foo=42), _LambdaAbstractionBase)
+    assert is_λ(other(1, foo=42))
+    assert is_λ(other(1, 2, foo=42))
+    assert is_λ(other(1, 2, 3, foo=42))
 
 
 def test_reduction_fast_path():
     # assert that two calls to reduce an abstraction don't do twice the same checks
     my_lambda = x1 + x2
     other_lambda = my_lambda + 42
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
-    assert isinstance(other_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
+    assert is_λ(other_lambda)
 
     my_lambda(1, b=2)
     my_lambda(c=4)
@@ -550,21 +549,21 @@ def test_reduction_fast_path():
 
 def test_identity_not_optimized():
     my_var = X
-    assert isinstance(my_var, _LambdaAbstractionBase)
+    assert is_λ(my_var)
     assert_value(my_var(3), 3)
     # we can still define the abstraction after having reduced it
     # in this particular case of an only magic variable as expression,
     # because those variables must be reusable!
-    assert isinstance(my_var(4, a=3), _LambdaAbstractionBase)
+    assert is_λ(my_var(4, a=3))
     assert_value(my_var(2), 2)
 
 
 def test_partial():
     my_lambda = x1 ** 5 + x2 ** 4 + x3 ** 3 + x4 ** 2 + x5
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
     after3 = partial(my_lambda, 3)
-    assert isinstance(my_lambda, _LambdaAbstractionBase)
-    assert not isinstance(after3, _LambdaAbstractionBase)
+    assert is_λ(my_lambda)
+    assert not is_λ(after3)
     assert_value(my_lambda(-3, 4, -5, -6, -7), (-3) ** 5 + 4 ** 4 + (-5) ** 3 + 6 ** 2 + -7)
     assert_value(after3(4, 5, 6, 7), 3 ** 5 + 4 ** 4 + 5 ** 3 + 6 ** 2 + 7)
     assert_value(after3(-4, 5, -6, 7), 3 ** 5 + (-4) ** 4 + 5 ** 3 + (-6) ** 2 + 7)
@@ -572,35 +571,35 @@ def test_partial():
 
 def test_particular_abstractions():
     my_id = X
-    assert isinstance(my_id, _LambdaAbstractionBase)
+    assert is_λ(my_id)
     assert_value(my_id(3), 3)
     with raises(TypeError):
         my_id(1, 2)
     my_apply_no_arg = my_id()
-    assert isinstance(my_apply_no_arg, _LambdaAbstractionBase)
+    assert is_λ(my_apply_no_arg)
     assert_value(my_apply_no_arg(int), 0)
 
     # combine a variable abstraction with a constant one:
     my_expr = my_id * λ(3)
-    assert isinstance(my_expr, _LambdaAbstractionBase)
+    assert is_λ(my_expr)
     assert_value(my_expr(4), 12)
 
     # not reducing constants allows this actual use case:
     my_random = λ(random.random)() * 100 + 10
-    assert isinstance(my_random, _LambdaAbstractionBase)
+    assert is_λ(my_random)
     values = {my_random() for _ in range(42)}
     assert 10 <= min(values) < max(values) <= 110
 
     # example of an abstract call to a standard function with parameter(s):
     value_set = λ(set)(X.values())
-    assert isinstance(value_set, _LambdaAbstractionBase)
+    assert is_λ(value_set)
     assert_value(value_set({"a": 1, "b": 2, "c": 1}), {1, 2})
 
 
 def test_expand():
     # test that we can also take an iteration of arguments to reduce the abstraction
     my_join = x1 + x2
-    assert isinstance(my_join, _LambdaAbstractionBase)
+    assert is_λ(my_join)
     assert_value(my_join(OrderedDict([("abc", 1), ("def", 2)])), "abcdef")
     assert_value(my_join([2, 3]), 5)
 
@@ -618,9 +617,9 @@ def test_expand():
 def test_degenerate_expand():
     # test that we cannot take an iteration of arguments to reduce a non-multivariate abstraction
     plus3 = X + 3
-    assert isinstance(plus3, _LambdaAbstractionBase)
+    assert is_λ(plus3)
     assert_value(plus3(2), 5)
     with raises(TypeError):
         plus3([3])
 
-    assert isinstance(λ(42)([]), _LambdaAbstractionBase)
+    assert is_λ(λ(42)([]))
