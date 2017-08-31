@@ -6,7 +6,7 @@ from lambdax.lambda_calculus import _LambdaAbstractionBase
 
 
 def assert_value(value, expected):
-    """ Helper to check that a value is as expected, and also that it's an abstraction because
+    """ Check that a value is as expected, and also that it's an abstraction because
     otherwise calling == on it would return another abstraction (which would be considered True
     by the assert.
     """

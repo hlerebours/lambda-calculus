@@ -30,7 +30,7 @@ def _reverse(fun):
 
 def _generate_magic_method(operation):
     def magic(self, *args, **kwargs):
-        """ Used to convert an operator function to a "dunder"-method bound
+        """ Convert an operator function to a "dunder"-method bound
         to _LambdaAbstractionBase
         """
         return _LambdaAbstraction(self, operation, args, kwargs)

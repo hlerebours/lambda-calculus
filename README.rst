@@ -73,7 +73,6 @@ Particular cases
 
        from lambdax import λ
        def already_existing_function(a, exp=1):
-           """ Standard function """
            return a ** exp - 1
        # the lambda below will take one parameter, call the standard function with two parameters
        # and modify the result:
