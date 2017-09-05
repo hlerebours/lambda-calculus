@@ -292,19 +292,30 @@ ixor = λ(op.ixor)
 
 
 # In the list above are missing (in comparison with the module `operator`)
-# the bitwise functions `and`, `or_` and `xor`. To be consistent with the
+# the bitwise functions `and_`, `or_` and `xor`. To be consistent with the
 # provided functions `not_`, `is_` and `is_not`, which are functions equivalent
 # to the keyword operators `not`, `is` and `is not` (FYI, the keyword `in` is
 # provided as function with `contains`), we implement the keyword operators
-# `and` and `or` as functions below. To avoid confusion between logical and
-# bitwise operations, we don't provide a function `xor` at all.
+# `and` and `or` as lazy functions below. To avoid confusion between logical
+# and bitwise operations, we don't provide a function `xor` at all.
 # For the bitwise operations, use the notation `a & b`, `a | b`, `a ^ b`.
 
-def and_(a, b):
-    """ Logical `and` (like the keyword) as a function. """
-    return comp(lambda a_: a_ and b, a)
+class _LazyBinaryOp(_LambdaAbstractionBase):  # pylint: disable=abstract-method
+    def __init__(self, left, right):
+        self._λ_left = λ(left)
+        self._λ_right = λ(right)
+        super().__init__(self._λ_left._λ_var_indices | self._λ_right._λ_var_indices)  # pylint: disable=protected-access
 
 
-def or_(a, b):
-    """ Logical `or` (like the keyword) as a function. """
-    return comp(lambda a_: a_ or b, a)
+class and_(_LazyBinaryOp):
+    """ Logical `and` (like the keyword) as a lazy abstraction. """
+
+    def _β(self, *input_data):
+        return self._λ_left._β(*input_data) and self._λ_right._β(*input_data)  # pylint: disable=protected-access
+
+
+class or_(_LazyBinaryOp):
+    """ Logical `or` (like the keyword) as a lazy abstraction. """
+
+    def _β(self, *input_data):
+        return self._λ_left._β(*input_data) or self._λ_right._β(*input_data)  # pylint: disable=protected-access

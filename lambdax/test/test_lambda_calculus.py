@@ -289,6 +289,22 @@ def test_logic_or():
     assert_value(my_lambda([0]), [0])
 
 
+def test_logic_laziness():
+    to_fill = []
+    empty = []
+    lazy_or = or_(X, lambdax.iadd(to_fill, ['empty']))
+    lazy_and = and_(X, lambdax.iadd(to_fill, X))
+    assert is_λ(lazy_or) and is_λ(lazy_and)
+
+    assert_value(lazy_or(4), 4)
+    assert lazy_and(empty) is empty
+    assert_value(to_fill, [])
+
+    assert lazy_and([2, 3]) is to_fill
+    assert lazy_or(empty) is to_fill
+    assert_value(to_fill, [2, 3, 'empty'])
+
+
 def test_logic_not():
     my_lambda = not_(X)
     assert is_λ(my_lambda)
