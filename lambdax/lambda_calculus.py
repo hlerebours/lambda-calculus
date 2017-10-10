@@ -3,25 +3,14 @@ few magic tricks provided here and a lot of operator overloading.
 Be reassured: while you're not using the public stuff exposed here,
 no operator is overloaded and everything is working as usual.
 Importing this module has no side-effect.
-
-Most of the functions publicly exposed by the module `operator`
-are redefined here to be immediately usable in lambda expressions.
-The operators that are not redefined here are:
-- `abs` and `pow`, which are built-in functions, redefined
-  in `lambdax.builtins_as_lambdas` and `lambdax.builtins_overridden`,
-- `and_` and `or_` redefined here but as logical operators and not
-  bitwise ones,
-- `xor` which is not provided as a function at all.
-For all the bitwise operations, call `a & b`, `a | b`, `a ^ c`.
 """
 
 import abc
 import itertools
 import numbers
-import operator as op
-import sys
+import operator
 
-_operators = vars(op)
+_operators = vars(operator)
 
 
 def _apply(fun, *args, **kwargs):
@@ -233,77 +222,9 @@ def chaining(f, g):
     return comp(g, f)
 
 
-# Provide all usual operators (defined in built-in module `operator`)
-# as functions usable in a lambda, except `abs`, `pow`, `and_`, `or_`, `xor`.
-
-# comparison operations
-eq = λ(op.eq)
-ge = λ(op.ge)
-gt = λ(op.gt)
-lt = λ(op.lt)
-le = λ(op.le)
-ne = λ(op.ne)
-
-# logical operations
-is_ = λ(op.is_)
-is_not = λ(op.is_not)
-not_ = λ(op.not_)
-truth = λ(op.truth)
-
-# mathematical and bitwise operations
-add = λ(op.add)
-floordiv = λ(op.floordiv)
-index = λ(op.index)
-inv = λ(op.inv)
-invert = λ(op.invert)
-lshift = λ(op.lshift)
-mod = λ(op.mod)
-mul = λ(op.mul)
-if sys.version_info >= (3, 5):
-    matmul = λ(op.matmul)
-neg = λ(op.neg)
-pos = λ(op.pos)
-rshift = λ(op.rshift)
-sub = λ(op.sub)
-truediv = λ(op.truediv)
-
-# sequence operations
-concat = λ(op.concat)
-contains = λ(op.contains)
-countOf = λ(op.countOf)
-delitem = λ(op.delitem)
-getitem = λ(op.getitem)
-indexOf = λ(op.indexOf)
-setitem = λ(op.setitem)
-if sys.version_info >= (3, 4):
-    length_hint = λ(op.length_hint)
-
-# in-place operations
-iadd = λ(op.iadd)
-iand = λ(op.iand)
-iconcat = λ(op.iconcat)
-ifloordiv = λ(op.ifloordiv)
-ilshift = λ(op.ilshift)
-imod = λ(op.imod)
-imul = λ(op.imul)
-if sys.version_info >= (3, 5):
-    imatmul = λ(op.imatmul)
-ior = λ(op.ior)
-ipow = λ(op.ipow)
-irshift = λ(op.irshift)
-isub = λ(op.isub)
-itruediv = λ(op.itruediv)
-ixor = λ(op.ixor)
-
-
-# In the list above are missing (in comparison with the module `operator`)
-# the bitwise functions `and_`, `or_` and `xor`. To be consistent with the
-# provided functions `not_`, `is_` and `is_not`, which are functions equivalent
-# to the keyword operators `not`, `is` and `is not` (FYI, the keyword `in` is
-# provided as function with `contains`), we implement the keyword operators
-# `and` and `or` as lazy functions below. To avoid confusion between logical
-# and bitwise operations, we don't provide a function `xor` at all.
-# For the bitwise operations, use the notation `a & b`, `a | b`, `a ^ b`.
+# Below, the implementation of the lazy operators `and_` and `or_` as functions.
+# If the provided parameters are lambda expressions themselves, they will be
+# evaluated lazily, to mimic the original operators' behavior.
 
 class _LazyBinaryOp(_LambdaAbstractionBase):  # pylint: disable=abstract-method
     def __init__(self, left, right):

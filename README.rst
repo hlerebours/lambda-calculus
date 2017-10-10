@@ -56,9 +56,10 @@ Multivariate lambdas can be reduced by providing either all arguments "separatel
 
 Limitations
 ^^^^^^^^^^^
-An expression is an abstraction (a "lambda") if it starts with one of the public members of the module ``lambdax``,
-i.e. a magic variable, a provided operator-as-function or the special function ``λ`` (see below),
-or with an arithmetic operation (in that case, one of the operands must be an abstraction itself).
+An expression is an abstraction (a "lambda") if it starts with one of the public members of the modules
+found in ``lambdax``, i.e. a magic variable, a provided operator-as-function, a builtin-as-lambda, the
+special function ``λ`` (see below), or with an arithmetic operation (in that case, at least one of the
+operands must be an abstraction itself).
 
 —
 -
@@ -134,6 +135,21 @@ Particular cases
        assert_value(and_(x, 6)(3), 6)
        assert_value((x & 6)(3), 2)
 
+4. All the relevant built-in functions are also redefined (though suffixed by ``_λ``) as abstractions.
+   You can also choose - it's not advised - to override the built-ins you want by just importing them
+   from ``lambdax.builtins_overridden``. Here, the built-ins that can be useful in a functional context
+   are redefined such that they behave like abstractions when at least one of the given parameters is
+   an abstraction, and like the original built-ins otherwise.
+
+   .. code-block:: python
+
+       from lambdax.builtins_as_lambdas import isinstance_λ
+       from lambdax.builtins_overridden import isinstance as isinstance_mixed
+       assert isinstance_λ(x, int)(2) is True
+       assert isinstance_mixed(2, int) is True
+       assert isinstance_mixed(x, int)(2) is True
+       assert isinstance_mixed(2, x)(int) is True
+
 —
 -
 
@@ -153,9 +169,10 @@ Typical use cases
 ^^^^^^^^^^^^^^^^^
 .. code-block:: python
 
+    from lambdax.builtins_as_lambdas import dict_λ
     complexes = [10 + 2j, 3 + 40j, 5 + 6j]
 
-    to_dicts = list(map(λ(dict)(r=x.real, i=x.imag), complexes))
+    to_dicts = list(map(dict_λ(r=x.real, i=x.imag), complexes))
     assert isinstance(to_dicts, list) and all(isinstance(v, dict) for v in to_dicts)
     assert to_dicts == [{'r': 10, 'i': 2}, {'r': 3, 'i': 40}, {'r': 5, 'i': 6}]
 

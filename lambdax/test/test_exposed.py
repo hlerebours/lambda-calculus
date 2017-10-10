@@ -20,20 +20,23 @@ def test_no_builtin_exposed():
         assert not isbuiltin(obj)
 
 
+def test_base_exposed():
+    variables = {'x'} | {'x%d' % i for i in range(1, 10)}
+    variables |= {v.upper() for v in variables}
+    special_functions = {'λ', 'is_λ', 'comp', 'circle', 'chaining', 'and_', 'or_'}
+
+    to_expose = variables | special_functions
+    exposed = _get_exposed(lambdax.lambda_calculus)
+
+    assert to_expose == exposed
+
+
 def test_operators_exposed():
     operators = {name for name, obj in vars(operator).items()
                  if not name.startswith('_') and not isclass(obj) and not hasattr(builtins, name)}
-    operators.discard('xor')
+    to_expose = operators.difference(('and_', 'or_', 'xor'))
 
-    variables = {'x'} | {'x%d' % i for i in range(1, 10)}
-    variables |= {v.upper() for v in variables}
-
-    special_functions = {'λ', 'is_λ', 'comp', 'circle', 'chaining'}
-
-    to_expose = operators | variables | special_functions
-    exposed = _get_exposed(lambdax)
-
-    assert to_expose == exposed
+    assert to_expose == _get_exposed(lambdax.operators)
 
 
 def test_overridden_builtins_exposed():
@@ -61,26 +64,20 @@ def test_overridden_builtins_exposed():
 
 def test_operators_implementations():
     operators = vars(operator)
-    untested = set()
-    for name, abstraction in vars(lambdax).items():
+    for name, abstraction in vars(lambdax.operators).items():
         initial = operators.get(name)
         if initial and isbuiltin(initial):
-            wrapped = getattr(abstraction, '_λ_constant', None)
-            if wrapped:
-                assert wrapped == initial
-                try:
-                    ref = initial(42, 51)
-                except TypeError as e:
-                    ref = e.args
-                try:
-                    res = abstraction(x1, x2)(42, 51)
-                except TypeError as e:
-                    res = e.args
-                assert res == ref
-            else:
-                untested.add(name)
-
-    assert untested == {'and_', 'or_'}  # special implementations
+            wrapped = getattr(abstraction, '_λ_constant')
+            assert wrapped == initial
+            try:
+                ref = initial(42, 51)
+            except TypeError as e:
+                ref = e.args
+            try:
+                res = abstraction(x1, x2)(42, 51)
+            except TypeError as e:
+                res = e.args
+            assert res == ref
 
 
 def _get_effect(implementation):
