@@ -4,8 +4,15 @@ Be reassured: while you're not using the public stuff exposed here,
 no operator is overloaded and everything is working as usual.
 Importing this module has no side-effect.
 
-All functions publicly exposed by the built-in module `operator`
+Most of the functions publicly exposed by the module `operator`
 are redefined here to be immediately usable in lambda expressions.
+The operators that are not redefined here are:
+- `abs` and `pow`, which are built-in functions, redefined
+  in `lambdax.builtins_as_lambdas` and `lambdax.builtins_overridden`,
+- `and_` and `or_` redefined here but as logical operators and not
+  bitwise ones,
+- `xor` which is not provided as a function at all.
+For all the bitwise operations, call `a & b`, `a | b`, `a ^ c`.
 """
 
 import abc
@@ -227,7 +234,7 @@ def chaining(f, g):
 
 
 # Provide all usual operators (defined in built-in module `operator`)
-# as functions usable in a lambda.
+# as functions usable in a lambda, except `abs`, `pow`, `and_`, `or_`, `xor`.
 
 # comparison operations
 eq = λ(op.eq)
@@ -244,7 +251,6 @@ not_ = λ(op.not_)
 truth = λ(op.truth)
 
 # mathematical and bitwise operations
-abs = λ(op.abs)  # pylint: disable=redefined-builtin
 add = λ(op.add)
 floordiv = λ(op.floordiv)
 index = λ(op.index)
@@ -257,7 +263,6 @@ if sys.version_info >= (3, 5):
     matmul = λ(op.matmul)
 neg = λ(op.neg)
 pos = λ(op.pos)
-pow = λ(op.pow)  # pylint: disable=redefined-builtin
 rshift = λ(op.rshift)
 sub = λ(op.sub)
 truediv = λ(op.truediv)

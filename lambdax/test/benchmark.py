@@ -6,18 +6,22 @@ but just a more concise way of writing them.
 
 from time import time
 
-import lambdax
+from lambdax import x
+from lambdax.builtins_overridden import abs as λabs, list as λlist
 
 iterations = range(100000)
 
 begin_test = time()
-res_test = list(map(-lambdax.x ** 3 + 7, iterations))
+# here `λlist` behaves like built-in `list`, whereas `λabs` returns an abstraction
+test_result = λlist(map(λabs(-x ** 3 + 7), iterations))
 end_test = time()
 
 begin_ref = time()
-res_ref = list(map(lambda x: -x ** 3 + 7, iterations))
+ref_result = list(map(lambda y: abs(-y ** 3 + 7), iterations))
 end_ref = time()
 
-assert res_test == res_ref
-print("Computed in: %.3fs" % (end_test - begin_test))
-print("Reference is %.3fs" % (end_ref - begin_ref))
+assert test_result == ref_result
+ref_duration = end_ref - begin_ref
+test_duration = end_test - begin_test
+print("Reference is %.3fs" % ref_duration)
+print("Test computed in: %.3fs (x%d)" % (test_duration, test_duration / ref_duration))

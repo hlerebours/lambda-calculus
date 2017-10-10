@@ -9,7 +9,13 @@ from pytest import raises
 import lambdax
 from lambdax import λ, X, x1, x2, x3, x4, x5, is_λ, comp, chaining
 from lambdax import contains, and_, or_, not_, is_
+from lambdax.builtins_overridden import len  # pylint: disable=redefined-builtin
 from lambdax.test import assert_value
+
+
+def test_still_functional_builtins():
+    assert_value(abs(-42), 42)
+    assert_value(pow(2, 3), 8)
 
 
 def test_provided_magic_variables():
