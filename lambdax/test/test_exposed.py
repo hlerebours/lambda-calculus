@@ -23,7 +23,7 @@ def test_no_builtin_exposed():
 def test_base_exposed():
     variables = {'x'} | {'x%d' % i for i in range(1, 10)}
     variables |= {v.upper() for v in variables}
-    special_functions = {'λ', 'is_λ', 'comp', 'circle', 'chaining', 'and_', 'or_'}
+    special_functions = {'λ', 'is_λ', 'comp', 'circle', 'chaining', 'and_', 'or_', 'if_'}
 
     to_expose = variables | special_functions
     exposed = _get_exposed(lambdax.lambda_calculus)

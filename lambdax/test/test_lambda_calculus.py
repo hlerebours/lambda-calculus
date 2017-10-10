@@ -7,7 +7,7 @@ import random
 from pytest import raises
 
 import lambdax
-from lambdax import λ, X, x1, x2, x3, x4, x5, is_λ, comp, chaining, and_, or_
+from lambdax import λ, X, x1, x2, x3, x4, x5, is_λ, comp, chaining, and_, or_, if_
 from lambdax.test import assert_value
 
 
@@ -264,6 +264,27 @@ def test_logic_laziness():
     assert lazy_and([2, 3]) is to_fill
     assert lazy_or(empty) is to_fill
     assert_value(to_fill, [2, 3, 'empty'])
+
+
+def test_ternary_logic():
+    _bach = if_(X % 2 == 0, X / 2, X * 3 + 1)
+    assert_value(_bach(2), 1)
+    assert_value(_bach(42), 21)
+    assert_value(_bach(21), 64)
+
+
+def test_ternary_laziness():
+    to_fill = []
+
+    # test laziness
+    append_bool = if_(x1, x2.append(λ(1)), x2.append(λ(0)))
+    assert_value(to_fill, [])
+
+    append_bool(False, to_fill)
+    assert_value(to_fill, [0])
+
+    append_bool(True, to_fill)
+    assert_value(to_fill, [0, 1])
 
 
 def test_hard_use_case():

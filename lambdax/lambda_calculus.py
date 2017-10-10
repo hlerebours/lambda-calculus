@@ -222,26 +222,35 @@ def chaining(f, g):
     return comp(g, f)
 
 
-# Below, the implementation of the lazy operators `and_` and `or_` as functions.
+# Below, the implementation of the lazy operators `and_`, `or_` and `if_` as functions.
 # If the provided parameters are lambda expressions themselves, they will be
 # evaluated lazily, to mimic the original operators' behavior.
 
-class _LazyBinaryOp(_LambdaAbstractionBase):  # pylint: disable=abstract-method
-    def __init__(self, left, right):
-        self._λ_left = λ(left)
-        self._λ_right = λ(right)
-        super().__init__(self._λ_left._λ_var_indices | self._λ_right._λ_var_indices)  # pylint: disable=protected-access
+class _Op(_LambdaAbstractionBase):  # pylint: disable=abstract-method
+    def __init__(self, *operands):
+        self._λ_operands = [λ(op) for op in operands]
+        super().__init__(set.union(*(op._λ_var_indices for op in self._λ_operands)))  # pylint: disable=protected-access
 
 
-class and_(_LazyBinaryOp):
+class and_(_Op):
     """ Logical `and` (like the keyword) as a lazy abstraction. """
 
     def _β(self, *input_data):
-        return self._λ_left._β(*input_data) and self._λ_right._β(*input_data)  # pylint: disable=protected-access
+        left, right = self._λ_operands
+        return left._β(*input_data) and right._β(*input_data)  # pylint: disable=protected-access
 
 
-class or_(_LazyBinaryOp):
+class or_(_Op):
     """ Logical `or` (like the keyword) as a lazy abstraction. """
 
     def _β(self, *input_data):
-        return self._λ_left._β(*input_data) or self._λ_right._β(*input_data)  # pylint: disable=protected-access
+        left, right = self._λ_operands
+        return left._β(*input_data) or right._β(*input_data)  # pylint: disable=protected-access
+
+
+class if_(_Op):
+    """ Ternary operator if_(c, t, e): the functional version of: t if c else e """
+
+    def _β(self, *input_data):
+        cond, then, else_ = self._λ_operands
+        return (then if cond._β(*input_data) else else_)._β(*input_data)  # pylint: disable=protected-access

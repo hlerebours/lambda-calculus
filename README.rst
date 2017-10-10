@@ -127,13 +127,17 @@ Particular cases
    and ``is not``. Plus there is no need for bitwise operators as functions, since they are all
    supported as double-underscore-methods in ``lambdax``.
 
+  Also, the ternary operator ``if_`` has been implemented. Its operands are evaluated lazily,
+  just like those of ``and_`` and ``or_``.
+
    .. code-block:: python
 
-       from lambdax import contains, and_
+       from lambdax import contains, and_, if_
        assert contains([1, 2, 3], x)(2) is True
        assert contains(x, 4)([1, 2]) is False
        assert_value(and_(x, 6)(3), 6)
        assert_value((x & 6)(3), 2)
+       assert_value(if_(x % 2, x * 3 + 1, x / 2)(3), 10)
 
 4. All the relevant built-in functions are also redefined (though suffixed by ``_λ``) as abstractions.
    You can also choose - it's not advised - to override the built-ins you want by just importing them
